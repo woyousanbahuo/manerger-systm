@@ -120,7 +120,7 @@
                 <!-- 左侧 Logo 与标题 (移动端截断处理) -->
                 <div class="flex items-center flex-shrink min-w-0">
                     <input type="file" id="logoUploadInput" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
-                    <img id="companyLogo" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%232563eb'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'/%3E%3C/svg%3E" alt="公司Logo" onclick="triggerLogoUpload()" class="h-8 w-8 sm:h-10 sm:w-10 mr-2 sm:mr-3 flex-shrink-0 rounded-full bg-white object-cover shadow-sm cursor-pointer hover:opacity-80 transition-opacity" title="点击更换Logo">
+                    <img id="companyLogo" src="./images/logo.png" onerror="this.onerror=null; this.src=&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%232563eb'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'/%3E%3C/svg%3E&quot;;" alt="公司Logo" onclick="triggerLogoUpload()" class="h-8 w-8 sm:h-10 sm:w-10 mr-2 sm:mr-3 flex-shrink-0 rounded-full bg-white object-cover shadow-sm cursor-pointer hover:opacity-80 transition-opacity" title="点击更换Logo">
                     <span id="companyName" class="font-bold text-sm sm:text-xl tracking-tight truncate max-w-[140px] sm:max-w-xs md:max-w-md lg:max-w-lg cursor-text border-b-2 border-transparent hover:border-white/50 focus:border-white focus:outline-none transition-colors" contenteditable="false" onblur="saveCompanyName()" title="管理员可修改系统名称">港坤公司办公用品管理系统</span>
                 </div>
                 
@@ -812,7 +812,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             const savedLogo = localStorage.getItem('companyLogo');
             if (savedLogo) document.getElementById('companyLogo').src = savedLogo;
-            else localStorage.setItem('companyLogo', document.getElementById('companyLogo').src);
             
             const savedName = localStorage.getItem('companyName');
             if (savedName) document.getElementById('companyName').innerText = savedName;
