@@ -108,6 +108,9 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen relative">
 
+    <!-- 顶部数据同步进度条 (丝滑加载动画) -->
+    <div id="topProgressBar" class="fixed top-0 left-0 h-[3px] bg-indigo-600 z-50 transition-all duration-500 w-0 opacity-0 shadow-md shadow-indigo-500/50"></div>
+
     <nav class="bg-white/80 backdrop-blur-xl border-b border-slate-200 shadow-sm sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between min-h-[4rem] sm:h-20 py-2 sm:py-0">
@@ -248,7 +251,6 @@
                                     <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(event)" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer w-4 h-4">
                                 </th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">序号</th>
-                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">日期</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">物品名称</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                                     <div class="flex items-center">
@@ -269,6 +271,7 @@
                                     </div>
                                 </th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">单位</th>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">日期</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">经办人</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">备注</th>
                                 <th scope="col" class="admin-only px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
@@ -446,15 +449,10 @@
 
     <script>
         /* =========================================================================
-         * 🚀 终极数据库配置区 (替换为 JSONBin.io 的信息)
-         * 免注册直连: https://jsonbin.io/ (国内免翻墙直连，支持 GitHub 一键登录)
+         * 🚀 终极数据库配置区 (JSONBin.io)
          * ========================================================================= */
-        
-        // 步骤1: 登录 jsonbin.io，点击 "Create Bin"，存入空大括号 "{}" 并保存。获取 Bin ID。
-        // 步骤2: 点击左侧 "API Keys"，获取 Master Key。把它们填在下面。
         const JSONBIN_BIN_ID = '69e1e417856a682189430290';
         const JSONBIN_API_KEY = '$2a$10$C11DanQnGAZV0TJsaSG3k.1X9VTBkmcL6Gffh1RbYjhMNSOaPmNNC';
-        
         // =========================================================================
         
         let inventoryData = [];
@@ -507,6 +505,30 @@
             });
         }
 
+        /* 顶部进度条控制 */
+        function startLoadingBar() {
+            const bar = document.getElementById('topProgressBar');
+            bar.style.opacity = '1';
+            bar.style.width = '0%';
+            bar.classList.remove('hidden');
+            setTimeout(() => bar.style.width = '60%', 50);
+        }
+
+        function endLoadingBar(isError = false) {
+            const bar = document.getElementById('topProgressBar');
+            bar.style.width = '100%';
+            if (isError) {
+                bar.classList.replace('bg-indigo-600', 'bg-rose-500');
+            }
+            setTimeout(() => {
+                bar.style.opacity = '0';
+                setTimeout(() => { 
+                    bar.style.width = '0%'; 
+                    if (isError) bar.classList.replace('bg-rose-500', 'bg-indigo-600');
+                }, 300);
+            }, 400);
+        }
+
         let itemsPerPage = window.innerWidth <= 768 ? 4 : 10;
         window.addEventListener('resize', () => {
             const newItemsPerPage = window.innerWidth <= 768 ? 4 : 10;
@@ -518,16 +540,14 @@
         });
         
         document.addEventListener('DOMContentLoaded', () => {
+            // 【核心优化1】0延迟首屏：直接用本地缓存渲染界面，拒绝白屏等待！
+            initFallbackData();
+            
             if (isCloudEnabled) {
+                // 【核心优化2】后台静默同步数据，带丝滑进度条
                 syncFromCloud();
             } else {
-                showCustomDialog({
-                    title: '⚠️ 需配置云端数据库',
-                    message: '系统检测到您尚未配置 JSONBin.io 数据桶。\n\n目前系统已降级为【单机模式】（数据仅保存在当前设备浏览器缓存）。\n\n【开启完美全端同步步骤】：\n1. 访问 https://jsonbin.io/ 使用您的 GitHub 一键登录\n2. 点击 "+ Create Bin"，输入 "{}" 并保存，复制 Bin ID\n3. 在左侧 API Keys 复制 Master Key\n4. 将这两个值填入本页面代码最上方的配置区！',
-                    type: 'alert'
-                });
                 document.getElementById('localModeIndicator').classList.remove('hidden');
-                initFallbackData();
             }
             
             setAdminStatus(false); 
@@ -535,10 +555,10 @@
             switchTab('inventory');
         });
         
-        // 核心：使用原生 Fetch 从 JSONBin 拉取数据 (去除了 /latest 后缀并增加了极高精度的错误捕获)
+        // 核心：使用原生 Fetch 从 JSONBin 拉取数据
         async function syncFromCloud() {
+            startLoadingBar();
             try {
-                // 移除了 /latest，防止免费账号未开启版本控制导致的 404 错误
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
                     method: 'GET',
                     headers: { 'X-Master-Key': JSONBIN_API_KEY }
@@ -560,6 +580,10 @@
                     if (storeData.adminPassword) localStorage.setItem('adminPassword', storeData.adminPassword);
                     if (storeData.companyName) document.getElementById('companyName').innerText = storeData.companyName;
                     
+                    // 覆盖本地缓存，下次秒开
+                    localStorage.setItem('inventoryData_v10', JSON.stringify(inventoryData));
+                    localStorage.setItem('productCatalog_v10', JSON.stringify(productCatalog));
+                    
                     if(isAdmin) {
                         document.getElementById('cloudSyncIndicator').classList.remove('hidden');
                         document.getElementById('localModeIndicator').classList.add('hidden');
@@ -567,26 +591,24 @@
                     
                     updateTable();
                     if (!document.getElementById('inventoryView').classList.contains('hidden')) renderInventory();
+                    endLoadingBar();
                 } else {
                     // 云端是空的或者数据不完整，把本地的推送上去
-                    initFallbackData();
                     saveDataToCloud(); 
+                    endLoadingBar();
                 }
             } catch (error) {
                 console.error("Cloud sync failed:", error);
-                
-                // 终极排错雷达弹窗
+                endLoadingBar(true);
                 showCustomDialog({
                     title: '❌ 云端连接失败',
-                    message: `无法连接到 JSONBin 云端。\n\n【错误详情】\n${error.message}\n\n请将此弹窗截图发给我排查！系统已自动降级为单机模式。`,
+                    message: `无法连接到 JSONBin 云端。\n\n【错误详情】\n${error.message}\n\n系统已自动降级为单机模式，您依然可以正常浏览。`,
                     type: 'alert'
                 });
-                
                 if(isAdmin) {
                     document.getElementById('cloudSyncIndicator').classList.add('hidden');
                     document.getElementById('localModeIndicator').classList.remove('hidden');
                 }
-                if(inventoryData.length === 0) initFallbackData();
             }
         }
 
@@ -599,6 +621,10 @@
                 return;
             }
             
+            // 保存时也更新本地缓存
+            localStorage.setItem('inventoryData_v10', JSON.stringify(inventoryData));
+            localStorage.setItem('productCatalog_v10', JSON.stringify(productCatalog));
+                
             const dataToSave = {
                 inventoryData: inventoryData,
                 productCatalog: productCatalog,
@@ -606,6 +632,7 @@
                 companyName: document.getElementById('companyName').innerText
             };
             
+            startLoadingBar();
             try {
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
                     method: 'PUT',
@@ -621,11 +648,13 @@
                     throw new Error(`HTTP ${response.status}: ${errText}`);
                 }
                 console.log("Push to cloud success.");
+                endLoadingBar();
             } catch (error) {
                 console.error("Save to cloud failed:", error);
+                endLoadingBar(true);
                 showCustomDialog({
                      title: '❌ 数据保存失败',
-                     message: `修改未能同步到云端！\n\n【错误详情】\n${error.message}`,
+                     message: `修改已保存在本地，但未能同步到云端！\n\n【错误详情】\n${error.message}`,
                      type: 'alert'
                 });
             }
@@ -921,6 +950,7 @@
         let totalPages = 0;
         let inventorySearchKeyword = '';
 
+        // 重新恢复了电脑端的表格内边距样式（px-6 py-4等），使电脑端UI不再丑陋挤压！
         function renderTable(data) {
             const tbody = document.getElementById('tableBody');
             const emptyState = document.getElementById('emptyState');
@@ -948,25 +978,25 @@
                 let html = '';
                 if (isAdmin) {
                     html += `
-                    <td class="td-checkbox">
+                    <td class="td-checkbox px-6 py-4 whitespace-nowrap">
                         <input type="checkbox" value="${item.id}" onchange="toggleSelectRow(event, ${item.id})" ${isSelected ? 'checked' : ''} class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer w-5 h-5">
                     </td>`;
                 }
                 
                 html += `
-                    <td class="td-index">${index + 1}</td>
-                    <td class="td-name">${item.itemName}</td>
-                    <td class="td-type"><span class="px-2.5 py-1 inline-flex text-xs leading-5 font-bold rounded-lg shadow-sm ${typeStyle}">${item.type}</span></td>
-                    <td data-unit="${item.unit}" class="td-qty">${item.quantity}</td>
-                    <td class="td-unit">${item.unit}</td>
-                    <td class="td-date">${item.date}</td>
-                    <td class="td-handler">${item.handler}</td>
-                    <td class="td-remarks"><span class="truncate max-w-[150px] sm:max-w-xs">${item.remarks || '-'}</span></td>
+                    <td class="td-index px-6 py-4 text-sm text-slate-500 whitespace-nowrap">${index + 1}</td>
+                    <td class="td-name px-6 py-4 text-sm font-bold text-slate-900 whitespace-nowrap">${item.itemName}</td>
+                    <td class="td-type px-6 py-4 text-sm whitespace-nowrap"><span class="px-2.5 py-1 inline-flex text-xs leading-5 font-bold rounded-lg shadow-sm ${typeStyle}">${item.type}</span></td>
+                    <td data-unit="${item.unit}" class="td-qty px-6 py-4 text-sm text-slate-900 font-bold whitespace-nowrap">${item.quantity}</td>
+                    <td class="td-unit px-6 py-4 text-sm text-slate-500 whitespace-nowrap">${item.unit}</td>
+                    <td class="td-date px-6 py-4 text-sm text-slate-900 whitespace-nowrap">${item.date}</td>
+                    <td class="td-handler px-6 py-4 text-sm text-slate-700 whitespace-nowrap">${item.handler}</td>
+                    <td class="td-remarks px-6 py-4 text-sm text-slate-500"><span class="truncate max-w-[150px] sm:max-w-xs block">${item.remarks || '-'}</span></td>
                 `;
 
                 if (isAdmin) {
                     html += `
-                    <td class="action-cell">
+                    <td class="action-cell px-6 py-4 text-sm text-slate-500 whitespace-nowrap">
                         <button onclick="deleteSingle(${item.id})" class="text-rose-500 hover:text-white hover:bg-rose-500 px-4 py-2 rounded-xl font-bold focus:outline-none transition-colors border border-rose-200 hover:border-transparent text-sm shadow-sm">删除此明细</button>
                     </td>`;
                 }
@@ -1176,21 +1206,21 @@
                     </button>` : '';
 
                 const nameCell = document.createElement('td');
-                nameCell.className = "px-6 py-4 text-base font-extrabold text-slate-900";
+                nameCell.className = "px-6 py-4 text-base font-extrabold text-slate-900 whitespace-nowrap";
                 nameCell.setAttribute('data-label', '物品名称');
                 nameCell.innerHTML = `<div class="flex items-center group"><span class="truncate">${itemName}</span>${isAdmin ? editPencil.replace('edit-icon-btn', 'edit-name-btn') : ''}</div>`;
                 if(isAdmin) nameCell.querySelector('.edit-name-btn').onclick = () => editItemName(itemName);
                 tr.appendChild(nameCell);
                 
                 const stockCell = document.createElement('td');
-                stockCell.className = `px-6 py-4 text-sm ${stockStyle}`;
+                stockCell.className = `px-6 py-4 text-sm whitespace-nowrap ${stockStyle}`;
                 stockCell.setAttribute('data-label', '当前库存');
                 stockCell.innerHTML = `<div class="flex items-center"><span>${currentStock}</span>${isAdmin ? editPencil.replace('edit-icon-btn', 'edit-stock-btn') : ''}</div>`;
                 if(isAdmin) stockCell.querySelector('.edit-stock-btn').onclick = () => editStock(itemName, currentStock);
                 tr.appendChild(stockCell);
                 
                 const unitCell = document.createElement('td');
-                unitCell.className = "px-6 py-4 text-sm text-slate-500 font-medium";
+                unitCell.className = "px-6 py-4 text-sm text-slate-500 font-medium whitespace-nowrap";
                 unitCell.setAttribute('data-label', '单位');
                 unitCell.innerHTML = `<div class="flex items-center group"><span>${catalogInfo.unit}</span>${isAdmin ? editPencil.replace('edit-icon-btn', 'edit-unit-btn') : ''}</div>`;
                 if(isAdmin) unitCell.querySelector('.edit-unit-btn').onclick = () => editUnit(itemName, catalogInfo.unit);
@@ -1198,7 +1228,7 @@
                 
                 if (isAdmin) {
                     const actionCell = document.createElement('td');
-                    actionCell.className = "action-cell px-6 py-4 text-sm text-slate-500";
+                    actionCell.className = "action-cell px-6 py-4 text-sm text-slate-500 whitespace-nowrap";
                     actionCell.setAttribute('data-label', '操作管理');
                     actionCell.innerHTML = `
                         <div class="flex space-x-2 w-full justify-end">
