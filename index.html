@@ -82,59 +82,66 @@
                 grid-template-columns: 1fr auto;
                 grid-template-areas: 
                     "name type"
-                    "qty qty"
-                    "date handler"
-                    "remarks remarks"
+                    "qty date"
+                    "handler remarks"
                     "action action";
-                gap: 0.5rem 0;
+                gap: 0.6rem 0.5rem;
                 background-color: #ffffff;
-                border-radius: 1.25rem;
-                box-shadow: 0 4px 20px -2px rgba(0,0,0,0.06);
+                border-radius: 1rem;
+                box-shadow: 0 4px 15px -3px rgba(0,0,0,0.08);
                 border: 1px solid #f1f5f9;
-                padding: 1.25rem;
+                padding: 1rem 1.25rem;
             }
+            #tableBody tr.has-checkbox {
+                grid-template-areas: 
+                    "checkbox checkbox"
+                    "name type"
+                    "qty date"
+                    "handler remarks"
+                    "action action";
+            }
+            
             #tableBody td { border: none !important; padding: 0 !important; display: flex; align-items: center; }
             #tableBody td::before { content: none !important; } 
             #tableBody td.td-index, #tableBody td.td-unit { display: none; } /* 彻底隐藏无用列 */
             
-            #tableBody td.td-checkbox { grid-column: 1 / 3; margin-bottom: 0.5rem; }
+            #tableBody td.td-checkbox { grid-area: checkbox; padding-bottom: 0.5rem !important; }
             
-            /* 物品名称居左上 */
-            #tableBody td.td-name { grid-area: name; font-size: 1.2rem; font-weight: 900; color: #0f172a; }
-            /* 操作类型标签居右上 */
+            /* 物品名称与操作类型 */
+            #tableBody td.td-name { grid-area: name; font-size: 1.15rem; font-weight: 800; color: #0f172a; line-height: 1.3; }
             #tableBody td.td-type { grid-area: type; justify-content: flex-end; align-items: flex-start; }
             
-            /* 变动数量独占一行、极度高亮 */
-            #tableBody td.td-qty { grid-area: qty; font-size: 2rem; font-weight: 900; color: #4f46e5; margin: 0.5rem 0; align-items: baseline; }
-            #tableBody td.td-qty::before { content: '变动数量'; font-size: 0.85rem; font-weight: 600; color: #64748b; margin-right: 0.75rem; letter-spacing: 1px; }
-            #tableBody td.td-qty::after { content: attr(data-unit); font-size: 1rem; font-weight: 600; color: #475569; margin-left: 0.25rem; }
+            /* 变动数量和时间：左右分布，带虚线分隔 */
+            #tableBody td.td-qty { grid-area: qty; font-size: 1.5rem; font-weight: 800; color: #4f46e5; padding-bottom: 0.6rem !important; border-bottom: 1px dashed #e2e8f0; align-items: baseline; }
+            #tableBody td.td-qty::before { content: '变动:'; font-size: 0.85rem; font-weight: 600; color: #64748b; margin-right: 0.35rem; }
+            #tableBody td.td-qty::after { content: attr(data-unit); font-size: 0.9rem; font-weight: 600; color: #64748b; margin-left: 0.2rem; }
             
-            /* 日期和经办人平分底部，虚线隔开 */
-            #tableBody td.td-date { grid-area: date; font-size: 0.85rem; color: #64748b; font-weight: 600; border-top: 1px dashed #e2e8f0; padding-top: 0.75rem !important; }
-            #tableBody td.td-handler { grid-area: handler; justify-content: flex-end; font-size: 0.85rem; color: #1e293b; font-weight: 800; border-top: 1px dashed #e2e8f0; padding-top: 0.75rem !important; }
-            #tableBody td.td-handler::before { content: '经办人: '; font-weight: normal; color: #94a3b8; margin-right: 0.25rem; }
+            #tableBody td.td-date { grid-area: date; justify-content: flex-end; font-size: 0.8rem; color: #64748b; padding-bottom: 0.6rem !important; border-bottom: 1px dashed #e2e8f0; align-items: flex-end; }
             
-            /* 备注区域 */
-            #tableBody td.td-remarks { grid-area: remarks; background: #f8fafc; padding: 0.75rem !important; border-radius: 0.5rem; margin-top: 0.25rem; font-size: 0.85rem; color: #475569; line-height: 1.4; }
-            #tableBody td.td-remarks::before { content: '备注: '; color: #94a3b8; font-weight: 700; margin-right: 0.25rem; }
+            /* 经办人和备注：左右分布 */
+            #tableBody td.td-handler { grid-area: handler; font-size: 0.9rem; font-weight: 700; color: #1e293b; padding-top: 0.4rem !important; }
+            #tableBody td.td-handler::before { content: '经办: '; font-weight: normal; font-size: 0.8rem; color: #94a3b8; margin-right: 0.25rem; }
             
-            #tableBody td.action-cell { grid-area: action; justify-content: flex-end; padding-top: 0.5rem !important; }
+            #tableBody td.td-remarks { grid-area: remarks; justify-content: flex-end; font-size: 0.85rem; color: #475569; padding-top: 0.4rem !important; text-align: right; }
+            #tableBody td.td-remarks::before { content: '备注: '; color: #94a3b8; margin-right: 0.2rem; }
+            
+            #tableBody td.action-cell { grid-area: action; justify-content: flex-end; padding-top: 0.75rem !important; margin-top: 0.25rem; border-top: 1px dashed #e2e8f0; }
 
             /* --- 2. 当前库存：清爽左右分栏卡片设计 --- */
             #inventoryBody tr {
                 display: flex; flex-wrap: wrap; align-items: center; align-content: center;
-                background-color: #ffffff; border-radius: 1.25rem;
-                box-shadow: 0 4px 20px -2px rgba(0,0,0,0.06);
-                border: 1px solid #f1f5f9; padding: 1.25rem; margin-bottom: 1rem;
+                background-color: #ffffff; border-radius: 1rem;
+                box-shadow: 0 4px 15px -3px rgba(0,0,0,0.08);
+                border: 1px solid #f1f5f9; padding: 1rem; margin-bottom: 1rem;
             }
             #inventoryBody td { border: none !important; padding: 0 !important; display: flex; align-items: center; justify-content: flex-start; text-align: left; }
             #inventoryBody td::before { content: none !important; }
             
-            #inventoryBody td.img-cell { width: 5rem; height: 5rem; flex-shrink: 0; margin-right: 1.25rem; }
-            #inventoryBody td.img-cell img, #inventoryBody td.img-cell .bg-slate-100 { width: 100%; height: 100%; border-radius: 0.85rem; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+            #inventoryBody td.img-cell { width: 4.5rem; height: 4.5rem; flex-shrink: 0; margin-right: 1rem; }
+            #inventoryBody td.img-cell img, #inventoryBody td.img-cell .bg-slate-100 { width: 100%; height: 100%; border-radius: 0.75rem; box-shadow: 0 4px 10px rgba(0,0,0,0.08); object-fit: cover; }
             
-            #inventoryBody td[data-label="物品名称"] { width: calc(100% - 6.25rem); font-size: 1.2rem; font-weight: 900; color: #0f172a; margin-bottom: 0.4rem; }
-            #inventoryBody td[data-label="当前库存"] { width: calc(100% - 6.25rem); margin-left: auto; font-size: 1.35rem; font-weight: 900; color: #4f46e5; }
+            #inventoryBody td[data-label="物品名称"] { width: calc(100% - 5.5rem); font-size: 1.15rem; font-weight: 900; color: #0f172a; margin-bottom: 0.25rem; }
+            #inventoryBody td[data-label="当前库存"] { width: calc(100% - 5.5rem); margin-left: 5.5rem; font-size: 1.25rem; font-weight: 900; color: #4f46e5; }
             #inventoryBody td[data-label="当前库存"] span:first-child::before { content: '余量: '; font-size: 0.85rem; color: #64748b; font-weight: 600; margin-right: 0.4rem; }
             #inventoryBody td[data-label="当前库存"] span:first-child::after { content: attr(data-unit); font-size: 0.85rem; color: #64748b; font-weight: 600; margin-left: 0.2rem; }
             
@@ -148,13 +155,13 @@
 
     <nav class="bg-white/80 backdrop-blur-xl border-b border-slate-200 shadow-sm sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16 sm:h-20">
-                <!-- 左侧 Logo 与标题 (修复了名称折叠被挤压的问题) -->
-                <div class="flex items-center flex-1 min-w-0 pr-2">
+            <div class="flex items-center justify-between min-h-[4rem] sm:h-20 py-2 sm:py-0">
+                <!-- 左侧 Logo 与标题 (移除了导致被截断的定宽代码，实现完全自适应) -->
+                <div class="flex items-center flex-1 pr-2">
                     <input type="file" id="logoUploadInput" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
-                    <!-- 终极防裂图机制：尝试加载 ./images/logo.svg，失败立刻替换为完美的 SVG 代码 -->
-                    <img id="companyLogo" src="./images/logo.svg" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdib3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjMGYxNzJhIj48cGF0aCBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMiIgZD0iTTE5IDIxVjVhMiAyIDAgMDAtMi0ySDdhMiAyIDAgMDAtMiAydjE2bTE0IDBoMm0tMiAwaC01bS05IDBIM20yIDBoNU05IDdoMW0tMSA0aDFtNC00aDFtLTEgNGgxbS01IDEwdi01YTEgMSAwIDAxMS0xaDJhMSAxIDAgMDExIDF2NW0tNCAwaDQiLz48L3N2Zz4=';" alt="公司Logo" onclick="triggerLogoUpload()" class="h-8 w-8 sm:h-12 sm:w-12 mr-2 sm:mr-4 flex-shrink-0 rounded-xl bg-slate-50 object-contain shadow-sm cursor-pointer hover:opacity-80 transition-opacity p-1 border border-slate-100" title="点击更换Logo">
-                    <span id="companyName" class="font-extrabold text-base sm:text-2xl tracking-tight truncate flex-1 cursor-text border-b-2 border-transparent hover:border-slate-300 focus:border-indigo-500 focus:outline-none transition-colors text-slate-900" contenteditable="false" onblur="saveCompanyName()" title="管理员可修改系统名称">港坤公司办公用品管理系统</span>
+                    <!-- 终极防裂图机制：匹配大写 Logo.svg，失败回退找根目录 Logo.svg，再失败替换为纯代码图标 -->
+                    <img id="companyLogo" src="./images/Logo.svg" onerror="if(!this.dataset.retried){this.dataset.retried='true';this.src='./Logo.svg';}else{this.onerror=null;this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdib3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjMGYxNzJhIj48cGF0aCBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMiIgZD0iTTE5IDIxVjVhMiAyIDAgMDAtMi0ySDdhMiAyIDAgMDAtMiAydjE2bTE0IDBoMm0tMiAwaC01bS05IDBIM20yIDBoNU05IDdoMW0tMSA0aDFtNC00aDFtLTEgNGgxbS01IDEwdi01YTEgMSAwIDAxMS0xaDJhMSAxIDAgMDExIDF2NW0tNCAwaDQiLz48L3N2Zz4=';}" alt="公司Logo" onclick="triggerLogoUpload()" class="h-10 w-10 sm:h-12 sm:w-12 mr-2.5 sm:mr-4 flex-shrink-0 rounded-xl bg-slate-50 object-contain shadow-sm cursor-pointer hover:opacity-80 transition-opacity p-1 border border-slate-100" title="点击更换Logo">
+                    <span id="companyName" class="font-extrabold text-[15px] sm:text-2xl leading-tight line-clamp-2 break-words cursor-text border-b-2 border-transparent hover:border-slate-300 focus:border-indigo-500 focus:outline-none transition-colors text-slate-900" contenteditable="false" onblur="saveCompanyName()" title="管理员可修改系统名称">港坤公司办公用品管理系统</span>
                 </div>
                 
                 <!-- 右侧操作区 -->
@@ -182,7 +189,7 @@
 
     <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         
-        <!-- 导航切换：均分宽度设计，彻底解决挤压 -->
+        <!-- 导航切换 -->
         <div class="border-b border-slate-200 mb-6 sm:mb-8">
             <nav class="-mb-px flex w-full" aria-label="Tabs">
                 <button onclick="switchTab('inventory')" id="tab-inventory" class="flex-1 sm:flex-none text-center border-indigo-600 text-indigo-600 py-3 sm:py-4 px-1 sm:px-8 border-b-2 font-extrabold text-sm sm:text-base transition-colors">当前库存展示</button>
@@ -200,7 +207,6 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                         </div>
-                        <!-- 高亮超级搜索框 -->
                         <input type="text" id="inventorySearchInput" placeholder="快速搜索名称..." class="block w-full pl-11 pr-4 py-3 sm:py-2.5 border-2 border-indigo-100 bg-indigo-50/40 rounded-2xl leading-5 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white text-sm font-bold transition duration-200 shadow-sm text-slate-800" oninput="handleInventorySearch()">
                     </div>
                     <span id="inventoryCountDisplay" class="text-xs sm:text-sm font-bold text-slate-600 bg-white px-3 sm:px-4 py-2 sm:py-1.5 rounded-xl whitespace-nowrap border-2 border-slate-100 shadow-sm hidden sm:block">共 0 个品类</span>
@@ -860,7 +866,7 @@
             switchTab('inventory');
         });
 
-        // 渲染明细表格（重新采用了极其严格漂亮的 Grid 账单式排版）
+        // 渲染明细表格（彻底重构为原生卡片级多层级网格布局）
         function renderTable(data) {
             const tbody = document.getElementById('tableBody');
             const emptyState = document.getElementById('emptyState');
@@ -881,7 +887,8 @@
 
             data.forEach((item, index) => {
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50 transition-colors";
+                // 给当前行附上复选框标识位，用于触发不同网格模板
+                tr.className = `hover:bg-slate-50 transition-colors ${isAdmin ? 'has-checkbox' : ''}`;
                 const typeStyle = item.type === '入库' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800';
                 const isSelected = selectedIds.has(item.id);
                 
@@ -896,12 +903,12 @@
                 html += `
                     <td class="td-index px-6 py-4 text-sm text-slate-500">${index + 1}</td>
                     <td class="td-name px-6 py-4 text-sm font-bold text-slate-900">${item.itemName}</td>
-                    <td class="td-type px-6 py-4 text-sm"><span class="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-lg shadow-sm ${typeStyle}">${item.type}</span></td>
+                    <td class="td-type px-6 py-4 text-sm"><span class="px-2.5 py-1 inline-flex text-xs leading-5 font-bold rounded-lg shadow-sm ${typeStyle}">${item.type}</span></td>
                     <td data-unit="${item.unit}" class="td-qty px-6 py-4 text-sm text-slate-900 font-bold">${item.quantity}</td>
                     <td class="td-unit px-6 py-4 text-sm text-slate-500">${item.unit}</td>
                     <td class="td-date px-6 py-4 text-sm text-slate-900">${item.date}</td>
                     <td class="td-handler px-6 py-4 text-sm text-slate-700">${item.handler}</td>
-                    <td class="td-remarks px-6 py-4 text-sm text-slate-500 sm:truncate sm:max-w-xs">${item.remarks || '-'}</td>
+                    <td class="td-remarks px-6 py-4 text-sm text-slate-500"><span class="truncate max-w-[150px] sm:max-w-xs">${item.remarks || '-'}</span></td>
                 `;
 
                 if (isAdmin) {
@@ -981,7 +988,6 @@
         }
         
         function updateTable() {
-            // 过滤掉“系统初始化”的记录，只在后台用于计算库存，不在前台明细中展示和导出
             let result = inventoryData.filter(item => item.handler !== '系统初始化');
             
             if (currentSearchKeyword) {
