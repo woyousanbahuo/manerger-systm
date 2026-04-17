@@ -540,6 +540,10 @@
         });
         
         document.addEventListener('DOMContentLoaded', () => {
+            // 【终极修复】先尝试从本地读取 Logo 缓存，避免 GitHub 缓存延迟问题
+            const savedLogo = localStorage.getItem('companyLogo');
+            if (savedLogo) document.getElementById('companyLogo').src = savedLogo;
+
             // 【核心优化1】0延迟首屏：直接用本地缓存渲染界面，拒绝白屏等待！
             initFallbackData();
             
@@ -579,6 +583,12 @@
                     
                     if (storeData.adminPassword) localStorage.setItem('adminPassword', storeData.adminPassword);
                     if (storeData.companyName) document.getElementById('companyName').innerText = storeData.companyName;
+                    
+                    // 【终极修复】从云端同步 Logo！
+                    if (storeData.companyLogo) {
+                        document.getElementById('companyLogo').src = storeData.companyLogo;
+                        localStorage.setItem('companyLogo', storeData.companyLogo);
+                    }
                     
                     // 覆盖本地缓存，下次秒开
                     localStorage.setItem('inventoryData_v10', JSON.stringify(inventoryData));
@@ -629,7 +639,8 @@
                 inventoryData: inventoryData,
                 productCatalog: productCatalog,
                 adminPassword: localStorage.getItem('adminPassword') || '123456',
-                companyName: document.getElementById('companyName').innerText
+                companyName: document.getElementById('companyName').innerText,
+                companyLogo: localStorage.getItem('companyLogo') || '' // 附带上传Logo到云端
             };
             
             startLoadingBar();
@@ -1451,9 +1462,11 @@
                     const base64 = canvas.toDataURL('image/png'); 
                     const logoEl = document.getElementById('companyLogo');
                     logoEl.src = base64;
-                    // 若想Logo云端同步，可扩展保存到云端配置，当前暂存本地演示
+                    
+                    // 【终极修复】保存到本地并瞬间推送到云端！
                     localStorage.setItem('companyLogo', base64);
-                    showToast('Logo 更新成功（暂存于本地浏览器缓存）');
+                    saveDataToCloud();
+                    showToast('Logo 已上传并成功同步至所有设备！');
                 };
                 img.src = e.target.result;
             };
