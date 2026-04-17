@@ -74,39 +74,41 @@
             .responsive-table-wrapper { border: none !important; box-shadow: none !important; background: transparent !important; }
             .responsive-table { border: none !important; box-shadow: none !important; }
             .responsive-table thead { display: none; }
-            .responsive-table tbody { display: flex; flex-direction: column; gap: 1rem; padding-bottom: 1rem; }
+            .responsive-table tbody { display: flex; flex-direction: column; gap: 1.25rem; padding-bottom: 1.5rem; }
             .responsive-table tbody tr {
                 display: flex; flex-direction: column;
                 background-color: #ffffff;
-                border-radius: 0.75rem;
-                box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-                border: 1px solid #e2e8f0;
+                border-radius: 1rem;
+                box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.01);
+                border: 1px solid #f1f5f9;
                 overflow: hidden;
             }
             .responsive-table tbody td {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                padding: 0.75rem 1rem !important;
-                border-bottom: 1px solid #f1f5f9;
+                padding: 1rem 1.25rem !important;
+                border-bottom: 1px solid #f8fafc;
                 white-space: normal !important; 
                 text-align: right;
+                word-break: break-word;
                 gap: 1rem;
             }
-            .responsive-table tbody td:last-child { border-bottom: none; background-color: #f8fafc; }
+            .responsive-table tbody td:last-child { border-bottom: none; background-color: #fcfcfc; }
             .responsive-table tbody td::before {
                 content: attr(data-label);
-                font-weight: 500;
-                color: #64748b;
+                font-weight: 600;
+                color: #94a3b8;
                 text-align: left;
                 flex-shrink: 0;
+                white-space: nowrap;
             }
-            .responsive-table tbody td.img-cell { justify-content: center; background-color: #f8fafc; padding: 1.5rem !important; }
+            .responsive-table tbody td.img-cell { justify-content: center; background-color: #f8fafc; padding: 2rem !important; }
             .responsive-table tbody td.img-cell::before { content: none; } 
             .responsive-table tbody td.img-cell img, 
-            .responsive-table tbody td.img-cell .bg-slate-100 { width: 6rem; height: 6rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+            .responsive-table tbody td.img-cell .bg-slate-100 { width: 7rem; height: 7rem; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); border-radius: 0.75rem; }
             .responsive-table tbody td > div.group { justify-content: flex-end; width: 100%; }
-            .responsive-table tbody td.action-cell { justify-content: flex-end; }
+            .responsive-table tbody td.action-cell { justify-content: flex-end; background-color: #f8fafc; }
             .responsive-table tbody td.action-cell::before { content: none; } 
         }
     </style>
@@ -114,53 +116,48 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen relative">
 
-    <nav class="bg-blue-600 text-white shadow-md sticky top-0 z-40">
+    <nav class="bg-white/80 backdrop-blur-xl border-b border-slate-200 shadow-sm sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
+            <div class="flex items-center justify-between h-16 sm:h-20">
                 <!-- 左侧 Logo 与标题 (移动端截断处理) -->
                 <div class="flex items-center flex-shrink min-w-0">
                     <input type="file" id="logoUploadInput" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
-                    <img id="companyLogo" src="./images/logo.png" onerror="this.onerror=null; this.src=&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%232563eb'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'/%3E%3C/svg%3E&quot;;" alt="公司Logo" onclick="triggerLogoUpload()" class="h-8 w-8 sm:h-10 sm:w-10 mr-2 sm:mr-3 flex-shrink-0 rounded-full bg-white object-cover shadow-sm cursor-pointer hover:opacity-80 transition-opacity" title="点击更换Logo">
-                    <span id="companyName" class="font-bold text-sm sm:text-xl tracking-tight truncate max-w-[140px] sm:max-w-xs md:max-w-md lg:max-w-lg cursor-text border-b-2 border-transparent hover:border-white/50 focus:border-white focus:outline-none transition-colors" contenteditable="false" onblur="saveCompanyName()" title="管理员可修改系统名称">港坤公司办公用品管理系统</span>
+                    <img id="companyLogo" src="./images/logo.svg" onerror="this.onerror=null; this.src=&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%230f172a'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'/%3E%3C/svg%3E&quot;;" alt="公司Logo" onclick="triggerLogoUpload()" class="h-8 w-8 sm:h-12 sm:w-12 mr-2 sm:mr-4 flex-shrink-0 rounded-xl bg-slate-50 object-cover shadow-sm cursor-pointer hover:opacity-80 transition-opacity p-1 border border-slate-100" title="点击更换Logo">
+                    <span id="companyName" class="font-extrabold text-base sm:text-2xl tracking-tight truncate max-w-[140px] sm:max-w-xs md:max-w-md lg:max-w-lg cursor-text border-b-2 border-transparent hover:border-slate-300 focus:border-indigo-500 focus:outline-none transition-colors text-slate-900" contenteditable="false" onblur="saveCompanyName()" title="管理员可修改系统名称">港坤公司办公用品管理系统</span>
                 </div>
                 
                 <!-- 右侧操作区 (移动端紧凑处理) -->
-                <div class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                    <button id="navLoginBtn" onclick="openAuthModal('login')" class="flex items-center px-2 py-1.5 sm:px-3 sm:py-1.5 bg-blue-700 hover:bg-blue-800 rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm border border-blue-400">
+                <div class="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+                    <button id="navLoginBtn" onclick="openAuthModal('login')" class="flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-slate-900 hover:bg-slate-800 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-md text-white">
                         <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
                         <span class="hidden sm:inline">管理登录</span>
                     </button>
                     
-                    <button id="navChangePwdBtn" onclick="openAuthModal('changePwd')" class="hidden flex items-center px-2 py-1.5 sm:px-3 sm:py-1.5 bg-slate-700 hover:bg-slate-800 rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm border border-slate-500" title="修改管理密码">
+                    <button id="navChangePwdBtn" onclick="openAuthModal('changePwd')" class="hidden flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-white hover:bg-slate-50 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-sm border border-slate-200 text-slate-700" title="修改管理密码">
                         <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
-                        <span class="hidden sm:inline">密码</span>
+                        <span class="hidden sm:inline">修改密码</span>
                     </button>
                     
-                    <button onclick="exportStandaloneApp()" class="admin-only flex items-center px-2 py-1.5 sm:px-3 sm:py-1.5 bg-indigo-700 hover:bg-indigo-800 rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm border border-indigo-400" title="生成包含Logo和数据的独立网页">
+                    <button onclick="exportStandaloneApp()" class="admin-only flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-indigo-50 hover:bg-indigo-100 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm border border-indigo-100 text-indigo-700" title="生成包含Logo和数据的独立网页">
                         <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                         <span class="hidden sm:inline">打包分享</span>
                     </button>
                     
-                    <button id="navLogoutBtn" onclick="logoutAdmin()" class="hidden flex items-center px-2 py-1.5 sm:px-3 sm:py-1.5 bg-red-600 hover:bg-red-700 rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm border border-red-400">
+                    <button id="navLogoutBtn" onclick="logoutAdmin()" class="hidden flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-red-50 hover:bg-red-100 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm border border-red-100 text-red-600">
                         <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                        <span class="hidden sm:inline">退出</span>
+                        <span class="hidden sm:inline">安全退出</span>
                     </button>
                 </div>
             </div>
         </div>
     </nav>
 
-    <!-- 权限提示横幅 -->
-    <div id="readOnlyBanner" class="bg-amber-50 border-b border-amber-200 px-4 py-2 text-center text-xs sm:text-sm text-amber-700 transition-opacity duration-300 shadow-inner">
-        当前为 <strong>只读浏览模式</strong>。可自由搜索查阅，操作或修改数据请先 <a href="#" onclick="openAuthModal('login'); return false;" class="underline font-bold text-amber-800">登录</a>。
-    </div>
-
-    <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+    <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         
-        <div class="border-b border-slate-200 mb-4 sm:mb-6">
-            <nav class="-mb-px flex space-x-4 sm:space-x-8" aria-label="Tabs">
-                <button onclick="switchTab('transactions')" id="tab-transactions" class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm sm:text-base transition-colors">出入库明细</button>
-                <button onclick="switchTab('inventory')" id="tab-inventory" class="border-blue-500 text-blue-600 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm sm:text-base transition-colors">当前库存展示</button>
+        <div class="border-b border-slate-200 mb-6 sm:mb-8">
+            <nav class="-mb-px flex space-x-6 sm:space-x-10" aria-label="Tabs">
+                <button onclick="switchTab('inventory')" id="tab-inventory" class="border-indigo-600 text-indigo-600 whitespace-nowrap py-3 sm:py-4 px-1 border-b-2 font-bold text-sm sm:text-base transition-colors">当前库存展示</button>
+                <button onclick="switchTab('transactions')" id="tab-transactions" class="border-transparent text-slate-400 hover:text-slate-800 hover:border-slate-300 whitespace-nowrap py-3 sm:py-4 px-1 border-b-2 font-medium text-sm sm:text-base transition-colors">出入库明细</button>
             </nav>
         </div>
 
@@ -275,7 +272,7 @@
                             <tr>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">物品图片</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">物品名称</th>
-                                <th scope="col" onclick="toggleInventorySort()" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors select-none group" title="点击按库存数量排序">
+                                <th scope="col" onclick="toggleInventorySort()" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors select-none group" title="默认按出入库频次排序，点击可按库存数量排序">
                                     <div class="flex items-center">
                                         当前库存
                                         <span id="inventorySortIcon" class="ml-1 text-slate-400 group-hover:text-slate-600">
@@ -587,17 +584,15 @@
                 document.getElementById('navLoginBtn').classList.add('hidden');
                 document.getElementById('navLogoutBtn').classList.remove('hidden');
                 document.getElementById('navChangePwdBtn').classList.remove('hidden');
-                document.getElementById('readOnlyBanner').classList.add('hidden');
                 document.getElementById('companyName').setAttribute('contenteditable', 'true');
-                document.getElementById('companyName').classList.add('border-white/30');
+                document.getElementById('companyName').classList.add('border-slate-300', 'border-dashed');
             } else {
                 document.body.classList.remove('is-admin');
                 document.getElementById('navLoginBtn').classList.remove('hidden');
                 document.getElementById('navLogoutBtn').classList.add('hidden');
                 document.getElementById('navChangePwdBtn').classList.add('hidden');
-                document.getElementById('readOnlyBanner').classList.remove('hidden');
                 document.getElementById('companyName').setAttribute('contenteditable', 'false');
-                document.getElementById('companyName').classList.remove('border-white/30');
+                document.getElementById('companyName').classList.remove('border-slate-300', 'border-dashed');
                 
                 selectedIds.clear();
                 updateBatchDeleteBtn();
@@ -966,14 +961,18 @@
         function switchTab(tabName) {
             const transView = document.getElementById('transactionsView'), invView = document.getElementById('inventoryView');
             const tabTrans = document.getElementById('tab-transactions'), tabInv = document.getElementById('tab-inventory');
+            
+            const activeClasses = "border-indigo-600 text-indigo-600 whitespace-nowrap py-3 sm:py-4 px-1 border-b-2 font-bold text-sm sm:text-base transition-colors";
+            const inactiveClasses = "border-transparent text-slate-400 hover:text-slate-800 hover:border-slate-300 whitespace-nowrap py-3 sm:py-4 px-1 border-b-2 font-medium text-sm sm:text-base transition-colors";
+
             if (tabName === 'transactions') {
                 transView.classList.remove('hidden'); invView.classList.add('hidden');
-                tabTrans.className = "border-blue-500 text-blue-600 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm sm:text-base transition-colors";
-                tabInv.className = "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm sm:text-base transition-colors";
+                tabTrans.className = activeClasses;
+                tabInv.className = inactiveClasses;
             } else {
                 transView.classList.add('hidden'); invView.classList.remove('hidden');
-                tabInv.className = "border-blue-500 text-blue-600 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm sm:text-base transition-colors";
-                tabTrans.className = "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm sm:text-base transition-colors";
+                tabInv.className = activeClasses;
+                tabTrans.className = inactiveClasses;
                 renderInventory();
             }
         }
@@ -1005,10 +1004,17 @@
             
             tbody.innerHTML = '';
             let stockMap = {};
+            let frequencyMap = {}; // 新增：出入库频次统计
+
             inventoryData.forEach(item => {
                 if (!stockMap[item.itemName]) stockMap[item.itemName] = 0;
                 if (item.type === '入库') stockMap[item.itemName] += item.quantity;
                 else if (item.type === '出库') stockMap[item.itemName] -= item.quantity;
+                
+                // 统计出入库活跃度 (排除系统初始化，反映真实业务使用频率)
+                if (item.handler !== '系统初始化') {
+                    frequencyMap[item.itemName] = (frequencyMap[item.itemName] || 0) + 1;
+                }
             });
             let allItems = Object.keys(productCatalog);
             if (inventorySearchKeyword) allItems = allItems.filter(itemName => itemName.toLowerCase().includes(inventorySearchKeyword.toLowerCase()));
@@ -1023,7 +1029,17 @@
             const countDisplay = document.getElementById('inventoryCountDisplay');
             if (countDisplay) countDisplay.innerText = `共 ${filteredItems.length} 个品类`;
 
-            if (currentInventorySort !== 'none') {
+            if (currentInventorySort === 'none') {
+                // 默认状态：智能按活跃度排序，出入库频次越高的越靠前
+                filteredItems.sort((a, b) => {
+                    const freqA = frequencyMap[a.itemName] || 0;
+                    const freqB = frequencyMap[b.itemName] || 0;
+                    if (freqA !== freqB) return freqB - freqA;
+                    // 频次相同时，按库存量降序兜底
+                    return b.currentStock - a.currentStock;
+                });
+            } else {
+                // 用户点击排序：按库存数量排序
                 filteredItems.sort((a, b) => currentInventorySort === 'asc' ? a.currentStock - b.currentStock : b.currentStock - a.currentStock);
             }
             
@@ -1043,8 +1059,8 @@
                 let imgCell = document.createElement('td'); 
                 imgCell.className = "img-cell px-6 py-4";
                 
-                // GitHub Pages 适配：如果本地没有上传过 base64 图片，默认去同级 images 文件夹下找同名 .png 图片
-                const imgPath = catalogInfo.image || `./images/${itemName}.png`;
+                // GitHub Pages 适配：如果本地没有上传过 base64 图片，默认去同级 images 文件夹下找同名 .jpg 图片
+                const imgPath = catalogInfo.image || `./images/${itemName}.jpg`;
                 
                 const img = document.createElement('img'); 
                 img.src = imgPath;
