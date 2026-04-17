@@ -623,7 +623,12 @@
                             });
                         }
                     } else {
-                        showToast("无法连接云端数据库，当前为单机模式");
+                        // 终极排错弹窗：捕获一切未知数据库错误
+                        showCustomDialog({
+                            title: '❌ 数据库连接异常',
+                            message: `详细错误信息：\n${errStr}\n\n请将此截图发给我排查。`,
+                            type: 'alert'
+                        });
                     }
                     initFallbackData(); 
                 });
@@ -641,17 +646,22 @@
                 if (err.code === 'auth/unauthorized-domain') {
                     showCustomDialog({
                         title: '🛑 域名未授权 (无法同步)',
-                        message: '系统检测到您当前网页托管在 Github Pages 上，但 Firebase 尚未允许该域名访问数据库。\n\n【必须执行的最后修复】\n1. 进入 Firebase 控制台 -> Authentication (身份验证)\n2. 点击顶部的 "Settings" (设置) -> 左侧的 "Authorized domains" (已授权的网域)\n3. 点击蓝色的 "Add domain" (添加网域) 按钮。\n4. 准确输入 nbahuo.github.io 并保存。\n\n完成授权并刷新网页前，系统只能在【单机模式】下运行，手机和电脑的密码及数据绝对无法同步！',
+                        message: '系统检测到您当前网页托管在 Github Pages 上，但 Firebase 尚未允许该域名访问。\n\n【必须执行的最后修复】\n1. 进入 Firebase 控制台 -> Authentication (身份验证)\n2. 点击顶部的 "Settings" (设置) -> 左侧的 "Authorized domains" (已授权的网域)\n3. 点击蓝色的 "Add domain" (添加网域) 按钮。\n4. 准确输入 nbahuo.github.io 并保存。\n\n完成授权前，手机和电脑的密码及数据绝对无法同步！',
                         type: 'alert'
                     });
                 } else if (err.code === 'auth/configuration-not-found' || err.code === 'auth/operation-not-allowed') {
                     showCustomDialog({
                         title: '⚠️ 缺少 Firebase 配置',
-                        message: '系统检测到您的 Firebase 未开启匿名登录，云端同步无法使用。\n\n【修复步骤】\n1. 进入 Firebase 控制台\n2. 点击左侧 Authentication\n3. 切换到 Sign-in method 标签页\n4. 找到 Anonymous (匿名) 并开启它\n\n在此之前，系统已自动为您切换为【本地单机模式】，可继续正常使用。',
+                        message: '系统检测到您的 Firebase 未开启匿名登录，云端同步无法使用。\n\n【修复步骤】\n1. 进入 Firebase 控制台\n2. 点击左侧 Authentication\n3. 切换到 Sign-in method 标签页\n4. 找到 Anonymous (匿名) 并开启它\n\n在此之前，系统已自动为您切换为【本地单机模式】。',
                         type: 'alert'
                     });
                 } else {
-                    showToast("无法连接云端身份验证，当前为单机模式");
+                    // 终极排错弹窗：捕获一切未知身份验证错误
+                    showCustomDialog({
+                        title: '❌ 身份验证异常',
+                        message: `详细错误代码：${err.code}\n错误信息：${err.message}\n\n请将此弹窗截图发给我排查。`,
+                        type: 'alert'
+                    });
                 }
                 initFallbackData();
             });
