@@ -174,10 +174,17 @@
                         <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
                         <span class="hidden sm:inline">密码</span>
                     </button>
-                    <button id="cloudSyncIndicator" class="hidden flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-emerald-50 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm border border-emerald-100 text-emerald-600">
+                    
+                    <!-- 状态指示灯：云同步正常 vs 单机模式 -->
+                    <button id="cloudSyncIndicator" class="hidden flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-emerald-50 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm border border-emerald-100 text-emerald-600" title="已成功连接云端，多端自动同步中">
                         <svg class="w-4 h-4 sm:mr-1.5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
-                        <span class="hidden sm:inline">云同步已开启</span>
+                        <span class="hidden sm:inline">云同步中</span>
                     </button>
+                    <button id="localModeIndicator" class="hidden flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-amber-50 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm border border-amber-200 text-amber-600" title="无法连接云端，当前数据仅保存在本地浏览器">
+                        <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        <span class="hidden sm:inline">单机模式</span>
+                    </button>
+
                     <button id="navLogoutBtn" onclick="logoutAdmin()" class="hidden flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-red-50 hover:bg-red-100 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm border border-red-100 text-red-600">
                         <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                         <span class="hidden sm:inline">退出</span>
@@ -560,6 +567,15 @@
                 
                 window.firebaseOnSnapshot(docRef, (snapshot) => {
                     isDbReady = true; 
+                    
+                    // UI 指示灯状态切换
+                    const cloudIndicator = document.getElementById('cloudSyncIndicator');
+                    const localIndicator = document.getElementById('localModeIndicator');
+                    if (isAdmin) {
+                        if (cloudIndicator) cloudIndicator.classList.remove('hidden');
+                        if (localIndicator) localIndicator.classList.add('hidden');
+                    }
+                    
                     if (snapshot.exists()) {
                         const data = snapshot.data();
                         
@@ -573,9 +589,6 @@
                             document.getElementById('companyName').innerText = data.companyName;
                         }
 
-                        const cloudIndicator = document.getElementById('cloudSyncIndicator');
-                        if (cloudIndicator && isAdmin) cloudIndicator.classList.remove('hidden');
-
                         updateTable();
                         if (!document.getElementById('inventoryView').classList.contains('hidden')) {
                             renderInventory();
@@ -587,33 +600,58 @@
                 }, (error) => {
                     isDbReady = false; 
                     
-                    if (String(error).includes('has not been used') || String(error).includes('disabled')) {
-                        showCustomDialog({
-                            title: '⏳ 云端服务器正在初始化',
-                            message: '恭喜！您的数据库已建好，但 Google 云端 API 需要 3-5 分钟来同步。\n\n【解决方法】\n1. 请耐心等待 3 分钟后刷新本网页。\n2. 如果仍未生效，请复制并在浏览器打开以下链接手动启用：\nhttps://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=' + firebaseConfig.projectId + '\n\n系统暂时回退为本地单机模式。',
-                            type: 'alert'
-                        });
-                    } else if (error.code === 'permission-denied') {
-                        showCustomDialog({
-                            title: '🔒 数据库权限被拒绝',
-                            message: '连接成功，但被数据库的安全规则拦截了！\n\n【修复步骤】\n1. 在 Firebase 控制台进入 Firestore Database\n2. 点击顶部的 "Rules" (规则) 标签页\n3. 将代码修改为：\nallow read, write: if request.auth != null;\n4. 点击 "Publish" (发布) 后刷新本页。',
-                            type: 'alert'
-                        });
+                    const cloudIndicator = document.getElementById('cloudSyncIndicator');
+                    const localIndicator = document.getElementById('localModeIndicator');
+                    if (isAdmin) {
+                        if (cloudIndicator) cloudIndicator.classList.add('hidden');
+                        if (localIndicator) localIndicator.classList.remove('hidden');
+                    }
+                    
+                    const errStr = String(error);
+                    if (errStr.includes('has not been used') || errStr.includes('disabled') || errStr.includes('permission-denied')) {
+                        if (errStr.includes('Cloud Firestore API has not been used') || errStr.includes('disabled')) {
+                            showCustomDialog({
+                                title: '⚠️ 需要激活 Firestore API',
+                                message: '您的数据库已创建，但 Google Cloud 的底层 API 尚未完全激活。\n\n【一键修复步骤】\n1. 请点击下方链接前往谷歌云控制台：\n<a href="https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=' + firebaseConfig.projectId + '" target="_blank" style="color: #4f46e5; font-weight: bold; text-decoration: underline; margin-top: 8px; display: inline-block;">👉 点击此处激活 API 👈</a>\n2. 在打开的页面中，点击蓝色的 "Enable" (启用) 按钮。\n3. 等待约 3 到 5 分钟后，刷新本页面即可正常同步！\n\n（在激活完成前，系统已自动为您切换为本地单机模式，可继续使用）',
+                                type: 'alert'
+                            });
+                        } else {
+                            showCustomDialog({
+                                title: '🔒 数据库权限被拒绝',
+                                message: '连接成功，但被数据库的安全规则拦截了！\n\n【修复步骤】\n1. 在 Firebase 控制台进入 Firestore Database\n2. 点击顶部的 "Rules" (规则) 标签页\n3. 将代码修改为：\nallow read, write: if request.auth != null;\n4. 点击 "Publish" (发布) 后刷新本页。',
+                                type: 'alert'
+                            });
+                        }
                     } else {
-                        showToast("无法连接云端数据库，系统已临时回退为单机模式");
+                        showToast("无法连接云端数据库，当前为单机模式");
                     }
                     initFallbackData(); 
                 });
             }).catch(err => {
-                console.warn("Firebase Auth Warning (可忽略):", err.message);
-                if (err.code === 'auth/configuration-not-found' || err.code === 'auth/operation-not-allowed') {
+                console.warn("Firebase Auth 失败:", err.code, err.message);
+                
+                isDbReady = false;
+                const cloudIndicator = document.getElementById('cloudSyncIndicator');
+                const localIndicator = document.getElementById('localModeIndicator');
+                if (isAdmin) {
+                    if (cloudIndicator) cloudIndicator.classList.add('hidden');
+                    if (localIndicator) localIndicator.classList.remove('hidden');
+                }
+                
+                if (err.code === 'auth/unauthorized-domain') {
+                    showCustomDialog({
+                        title: '🛑 域名未授权 (无法同步)',
+                        message: '系统检测到您当前网页托管在 Github Pages 上，但 Firebase 尚未允许该域名访问数据库。\n\n【必须执行的最后修复】\n1. 进入 Firebase 控制台 -> Authentication (身份验证)\n2. 点击顶部的 "Settings" (设置) -> 左侧的 "Authorized domains" (已授权的网域)\n3. 点击蓝色的 "Add domain" (添加网域) 按钮。\n4. 准确输入 nbahuo.github.io 并保存。\n\n完成授权并刷新网页前，系统只能在【单机模式】下运行，手机和电脑的密码及数据绝对无法同步！',
+                        type: 'alert'
+                    });
+                } else if (err.code === 'auth/configuration-not-found' || err.code === 'auth/operation-not-allowed') {
                     showCustomDialog({
                         title: '⚠️ 缺少 Firebase 配置',
                         message: '系统检测到您的 Firebase 未开启匿名登录，云端同步无法使用。\n\n【修复步骤】\n1. 进入 Firebase 控制台\n2. 点击左侧 Authentication\n3. 切换到 Sign-in method 标签页\n4. 找到 Anonymous (匿名) 并开启它\n\n在此之前，系统已自动为您切换为【本地单机模式】，可继续正常使用。',
                         type: 'alert'
                     });
                 } else {
-                    showToast("无法连接云端身份验证，系统已临时回退为单机模式");
+                    showToast("无法连接云端身份验证，当前为单机模式");
                 }
                 initFallbackData();
             });
@@ -830,7 +868,9 @@
 
         function setAdminStatus(status) {
             isAdmin = status;
+            
             const cloudIndicator = document.getElementById('cloudSyncIndicator');
+            const localIndicator = document.getElementById('localModeIndicator');
             
             if (isAdmin) {
                 document.body.classList.add('is-admin');
@@ -839,7 +879,14 @@
                 document.getElementById('navChangePwdBtn').classList.remove('hidden');
                 document.getElementById('companyName').setAttribute('contenteditable', 'true');
                 document.getElementById('companyName').classList.add('border-slate-300', 'border-dashed');
-                if (cloudIndicator && isDbReady) cloudIndicator.classList.remove('hidden');
+                
+                if (isDbReady) {
+                    if (cloudIndicator) cloudIndicator.classList.remove('hidden');
+                    if (localIndicator) localIndicator.classList.add('hidden');
+                } else {
+                    if (cloudIndicator) cloudIndicator.classList.add('hidden');
+                    if (localIndicator) localIndicator.classList.remove('hidden');
+                }
             } else {
                 document.body.classList.remove('is-admin');
                 document.getElementById('navLoginBtn').classList.remove('hidden');
@@ -847,7 +894,9 @@
                 document.getElementById('navChangePwdBtn').classList.add('hidden');
                 document.getElementById('companyName').setAttribute('contenteditable', 'false');
                 document.getElementById('companyName').classList.remove('border-slate-300', 'border-dashed');
+                
                 if (cloudIndicator) cloudIndicator.classList.add('hidden');
+                if (localIndicator) localIndicator.classList.add('hidden');
                 
                 selectedIds.clear();
                 updateBatchDeleteBtn();
@@ -1434,7 +1483,6 @@
                     const base64 = canvas.toDataURL('image/png'); 
                     const logoEl = document.getElementById('companyLogo');
                     logoEl.src = base64;
-                    // 保存到云端以实现全端同步
                     saveDataToFirebase();
                     showToast('Logo 上传并同步成功！');
                 };
