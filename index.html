@@ -74,65 +74,50 @@
             .responsive-table-wrapper { border: none !important; box-shadow: none !important; background: transparent !important; }
             .responsive-table { border: none !important; box-shadow: none !important; }
             .responsive-table thead { display: none; }
-            .responsive-table tbody { display: flex; flex-direction: column; gap: 1rem; padding-bottom: 1.5rem; }
+            .responsive-table tbody { display: flex; flex-direction: column; padding-bottom: 1.5rem; }
             
-            /* --- 1. 出入库明细：账单级严格 Grid 网格卡片排版 --- */
+            /* --- 1. 出入库明细：彻底抛弃Grid，采用极稳健 Flexbox 账单式排版 --- */
             #tableBody tr {
-                display: grid;
-                grid-template-columns: 1fr auto;
-                grid-template-areas: 
-                    "name type"
-                    "qty date"
-                    "handler remarks"
-                    "action action";
-                gap: 0.6rem 0.5rem;
-                background-color: #ffffff;
-                border-radius: 1rem;
+                display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+                background-color: #ffffff; border-radius: 1rem;
                 box-shadow: 0 4px 15px -3px rgba(0,0,0,0.08);
-                border: 1px solid #f1f5f9;
-                padding: 1rem 1.25rem;
+                border: 1px solid #f1f5f9; padding: 1.25rem; margin-bottom: 1rem; gap: 0;
             }
-            #tableBody tr.has-checkbox {
-                grid-template-areas: 
-                    "checkbox checkbox"
-                    "name type"
-                    "qty date"
-                    "handler remarks"
-                    "action action";
-            }
-            
-            #tableBody td { border: none !important; padding: 0 !important; display: flex; align-items: center; }
+            #tableBody td { border: none !important; padding: 0 !important; display: flex; align-items: center; width: auto; }
             #tableBody td::before { content: none !important; } 
-            #tableBody td.td-index, #tableBody td.td-unit { display: none; } /* 彻底隐藏无用列 */
+            #tableBody td.td-index, #tableBody td.td-unit { display: none; } /* 隐藏无用列 */
             
-            #tableBody td.td-checkbox { grid-area: checkbox; padding-bottom: 0.5rem !important; }
+            #tableBody td.td-checkbox { width: 100%; margin-bottom: 0.5rem; }
             
-            /* 物品名称与操作类型 */
-            #tableBody td.td-name { grid-area: name; font-size: 1.15rem; font-weight: 800; color: #0f172a; line-height: 1.3; }
-            #tableBody td.td-type { grid-area: type; justify-content: flex-end; align-items: flex-start; }
+            /* 第一排：物品名称与操作类型 */
+            #tableBody td.td-name { width: calc(100% - 5rem); font-size: 1.2rem; font-weight: 900; color: #0f172a; margin-bottom: 0.5rem; line-height: 1.3; }
+            #tableBody td.td-type { width: 5rem; justify-content: flex-end; margin-bottom: 0.5rem; }
             
-            /* 变动数量和时间：左右分布，带虚线分隔 */
-            #tableBody td.td-qty { grid-area: qty; font-size: 1.5rem; font-weight: 800; color: #4f46e5; padding-bottom: 0.6rem !important; border-bottom: 1px dashed #e2e8f0; align-items: baseline; }
-            #tableBody td.td-qty::before { content: '变动:'; font-size: 0.85rem; font-weight: 600; color: #64748b; margin-right: 0.35rem; }
+            /* 第二排：变动数量独立一行 */
+            #tableBody td.td-qty { width: 100%; font-size: 1.7rem; font-weight: 900; color: #4f46e5; margin-bottom: 0.75rem; align-items: baseline; }
+            #tableBody td.td-qty::before { content: '变动数量:'; font-size: 0.85rem; font-weight: 600; color: #64748b; margin-right: 0.5rem; letter-spacing: 1px; }
             #tableBody td.td-qty::after { content: attr(data-unit); font-size: 0.9rem; font-weight: 600; color: #64748b; margin-left: 0.2rem; }
             
-            #tableBody td.td-date { grid-area: date; justify-content: flex-end; font-size: 0.8rem; color: #64748b; padding-bottom: 0.6rem !important; border-bottom: 1px dashed #e2e8f0; align-items: flex-end; }
+            /* 第三排：日期和经办人平分一行，底部虚线 */
+            #tableBody td.td-date { width: 50%; font-size: 0.85rem; color: #64748b; border-bottom: 1px dashed #e2e8f0; padding-bottom: 0.75rem !important; }
+            #tableBody td.td-date::before { content: '日期: '; margin-right: 0.25rem; }
             
-            /* 经办人和备注：左右分布 */
-            #tableBody td.td-handler { grid-area: handler; font-size: 0.9rem; font-weight: 700; color: #1e293b; padding-top: 0.4rem !important; }
+            #tableBody td.td-handler { width: 50%; justify-content: flex-end; font-size: 0.9rem; font-weight: 800; color: #1e293b; border-bottom: 1px dashed #e2e8f0; padding-bottom: 0.75rem !important; }
             #tableBody td.td-handler::before { content: '经办: '; font-weight: normal; font-size: 0.8rem; color: #94a3b8; margin-right: 0.25rem; }
             
-            #tableBody td.td-remarks { grid-area: remarks; justify-content: flex-end; font-size: 0.85rem; color: #475569; padding-top: 0.4rem !important; text-align: right; }
-            #tableBody td.td-remarks::before { content: '备注: '; color: #94a3b8; margin-right: 0.2rem; }
+            /* 第四排：备注 */
+            #tableBody td.td-remarks { width: 100%; background: #f8fafc; padding: 0.75rem !important; border-radius: 0.5rem; margin-top: 0.75rem; font-size: 0.85rem; color: #475569; }
+            #tableBody td.td-remarks::before { content: '备注: '; color: #94a3b8; font-weight: 700; margin-right: 0.25rem; }
             
-            #tableBody td.action-cell { grid-area: action; justify-content: flex-end; padding-top: 0.75rem !important; margin-top: 0.25rem; border-top: 1px dashed #e2e8f0; }
+            /* 第五排：操作 */
+            #tableBody td.action-cell { width: 100%; justify-content: flex-end; margin-top: 0.5rem; padding-top: 0.5rem !important; }
 
             /* --- 2. 当前库存：清爽左右分栏卡片设计 --- */
             #inventoryBody tr {
                 display: flex; flex-wrap: wrap; align-items: center; align-content: center;
                 background-color: #ffffff; border-radius: 1rem;
                 box-shadow: 0 4px 15px -3px rgba(0,0,0,0.08);
-                border: 1px solid #f1f5f9; padding: 1rem; margin-bottom: 1rem;
+                border: 1px solid #f1f5f9; padding: 1.25rem; margin-bottom: 1rem;
             }
             #inventoryBody td { border: none !important; padding: 0 !important; display: flex; align-items: center; justify-content: flex-start; text-align: left; }
             #inventoryBody td::before { content: none !important; }
@@ -159,8 +144,8 @@
                 <!-- 左侧 Logo 与标题 (移除了导致被截断的定宽代码，实现完全自适应) -->
                 <div class="flex items-center flex-1 pr-2">
                     <input type="file" id="logoUploadInput" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
-                    <!-- 终极防裂图机制：匹配大写 Logo.svg，失败回退找根目录 Logo.svg，再失败替换为纯代码图标 -->
-                    <img id="companyLogo" src="./images/Logo.svg" onerror="if(!this.dataset.retried){this.dataset.retried='true';this.src='./Logo.svg';}else{this.onerror=null;this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdib3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjMGYxNzJhIj48cGF0aCBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMiIgZD0iTTE5IDIxVjVhMiAyIDAgMDAtMi0ySDdhMiAyIDAgMDAtMiAydjE2bTE0IDBoMm0tMiAwaC01bS05IDBIM20yIDBoNU05IDdoMW0tMSA0aDFtNC00aDFtLTEgNGgxbS01IDEwdi01YTEgMSAwIDAxMS0xaDJhMSAxIDAgMDExIDF2NW0tNCAwaDQiLz48L3N2Zz4=';}" alt="公司Logo" onclick="triggerLogoUpload()" class="h-10 w-10 sm:h-12 sm:w-12 mr-2.5 sm:mr-4 flex-shrink-0 rounded-xl bg-slate-50 object-contain shadow-sm cursor-pointer hover:opacity-80 transition-opacity p-1 border border-slate-100" title="点击更换Logo">
+                    <!-- 终极防裂图机制：匹配大写 Logo.svg，如果失败尝试去根目录找，再失败替换纯代码图标 -->
+                    <img id="companyLogo" src="images/Logo.svg" onerror="if(this.src.includes('images/Logo.svg')){this.src='Logo.svg';}else{this.onerror=null;this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdib3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjMGYxNzJhIj48cGF0aCBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMiIgZD0iTTE5IDIxVjVhMiAyIDAgMDAtMi0ySDdhMiAyIDAgMDAtMiAydjE2bTE0IDBoMm0tMiAwaC01bS05IDBIM20yIDBoNU05IDdoMW0tMSA0aDFtNC00aDFtLTEgNGgxbS01IDEwdi01YTEgMSAwIDAxMS0xaDJhMSAxIDAgMDExIDF2NW0tNCAwaDQiLz48L3N2Zz4=';}" alt="公司Logo" onclick="triggerLogoUpload()" class="h-10 w-10 sm:h-12 sm:w-12 mr-2.5 sm:mr-4 flex-shrink-0 rounded-xl bg-slate-50 object-contain shadow-sm cursor-pointer hover:opacity-80 transition-opacity p-1 border border-slate-100" title="点击更换Logo">
                     <span id="companyName" class="font-extrabold text-[15px] sm:text-2xl leading-tight line-clamp-2 break-words cursor-text border-b-2 border-transparent hover:border-slate-300 focus:border-indigo-500 focus:outline-none transition-colors text-slate-900" contenteditable="false" onblur="saveCompanyName()" title="管理员可修改系统名称">港坤公司办公用品管理系统</span>
                 </div>
                 
@@ -737,8 +722,9 @@
         let inventoryData = [];
         let productCatalog = {};
         
-        const localData = localStorage.getItem('inventoryData_v8');
-        const localCatalog = localStorage.getItem('productCatalog_v8');
+        // 缓存重置为 v9
+        const localData = localStorage.getItem('inventoryData_v9');
+        const localCatalog = localStorage.getItem('productCatalog_v9');
         if (localData) {
             try {
                 inventoryData = JSON.parse(localData);
@@ -752,8 +738,8 @@
         } else if (window.__EMBEDDED_DATA__) {
             inventoryData = window.__EMBEDDED_DATA__.inventoryData;
             productCatalog = window.__EMBEDDED_DATA__.productCatalog;
-            localStorage.setItem('inventoryData_v8', JSON.stringify(inventoryData));
-            localStorage.setItem('productCatalog_v8', JSON.stringify(productCatalog));
+            localStorage.setItem('inventoryData_v9', JSON.stringify(inventoryData));
+            localStorage.setItem('productCatalog_v9', JSON.stringify(productCatalog));
         } else {
             inventoryData = [...defaultData];
             productCatalog = {};
@@ -762,8 +748,8 @@
 
         function saveDataToStorage() {
             try {
-                localStorage.setItem('inventoryData_v8', JSON.stringify(inventoryData));
-                localStorage.setItem('productCatalog_v8', JSON.stringify(productCatalog));
+                localStorage.setItem('inventoryData_v9', JSON.stringify(inventoryData));
+                localStorage.setItem('productCatalog_v9', JSON.stringify(productCatalog));
             } catch (e) {
                 showCustomDialog({ message: '数据保存失败，请检查浏览器存储空间。' });
             }
@@ -850,12 +836,11 @@
         let inventorySearchKeyword = '';
 
         document.addEventListener('DOMContentLoaded', () => {
-            const savedLogo = localStorage.getItem('companyLogo');
-            if (savedLogo) document.getElementById('companyLogo').src = savedLogo;
+            // 移除了干扰 Logo 加载的 LocalStorage 读取
+            // Logo 会严格拉取 Github 的 images/Logo.svg
             
             const savedName = localStorage.getItem('companyName');
             if (savedName) document.getElementById('companyName').innerText = savedName;
-            else localStorage.setItem('companyName', document.getElementById('companyName').innerText);
 
             document.getElementById('formDate').value = getTodayString();
             
@@ -887,7 +872,6 @@
 
             data.forEach((item, index) => {
                 const tr = document.createElement('tr');
-                // 给当前行附上复选框标识位，用于触发不同网格模板
                 tr.className = `hover:bg-slate-50 transition-colors ${isAdmin ? 'has-checkbox' : ''}`;
                 const typeStyle = item.type === '入库' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800';
                 const isSelected = selectedIds.has(item.id);
@@ -1366,10 +1350,11 @@
                     if (width > MAX_WIDTH) { height = Math.round((height * MAX_WIDTH) / width); width = MAX_WIDTH; }
                     canvas.width = width; canvas.height = height;
                     const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
+                    // 上传的存入临时缓存，供无github环境使用
                     const base64 = canvas.toDataURL('image/png'); 
                     const logoEl = document.getElementById('companyLogo');
-                    logoEl.src = base64; logoEl.setAttribute('src', base64); 
-                    localStorage.setItem('companyLogo', base64); showToast('Logo 更新成功！');
+                    logoEl.src = base64; 
+                    showToast('Logo 临时预览更新成功！');
                 };
                 img.src = e.target.result;
             };
@@ -1444,8 +1429,6 @@
             if (dataScript) dataScript.textContent = `window.__EMBEDDED_DATA__ = { inventoryData: ${JSON.stringify(inventoryData)}, productCatalog: ${JSON.stringify(productCatalog)} };`;
             const nameSpan = clonedDoc.getElementById('companyName');
             if (nameSpan) nameSpan.innerText = document.getElementById('companyName').innerText;
-            const clonedLogo = clonedDoc.getElementById('companyLogo');
-            if (clonedLogo) clonedLogo.setAttribute('src', document.getElementById('companyLogo').src);
             const htmlContent = '<!DOCTYPE html>\n<html lang="zh-CN">\n' + clonedDoc.documentElement.innerHTML + '\n</html>';
             const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
             const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url;
