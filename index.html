@@ -71,89 +71,80 @@
 
         /* ================= 移动端原生 App 级神仙适配 ================= */
         @media (max-width: 768px) {
-            /* 初始化表格重置 */
             .responsive-table-wrapper { border: none !important; box-shadow: none !important; background: transparent !important; }
             .responsive-table { border: none !important; box-shadow: none !important; }
             .responsive-table thead { display: none; }
-            .responsive-table tbody { display: flex; flex-direction: column; gap: 1.25rem; padding-bottom: 1.5rem; }
+            .responsive-table tbody { display: flex; flex-direction: column; gap: 1rem; padding-bottom: 1.5rem; }
             
-            /* --- 1. 出入库明细专属超级卡片设计 --- */
+            /* --- 1. 出入库明细：账单级超级卡片设计 --- */
             #tableBody tr {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                background-color: #ffffff;
-                border-radius: 1rem;
-                box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.01);
-                border: 1px solid #f1f5f9;
-                padding: 1.25rem;
-                position: relative;
-                gap: 0.5rem;
-            }
-            #tableBody td {
-                display: flex; align-items: center; padding: 0 !important; border: none !important;
-                white-space: normal !important; text-align: left;
-            }
-            
-            /* 隐藏序号和独立单位列（单位合并到数量旁） */
-            #tableBody td.td-index, #tableBody td.td-unit { display: none; }
-            
-            /* 批量选择框 */
-            #tableBody td.td-checkbox { grid-column: 1 / 3; margin-bottom: 0.5rem; }
-            
-            /* 物品名称 - 超大加粗置顶 */
-            #tableBody td.td-name { grid-column: 1 / 3; font-size: 1.25rem; font-weight: 900; color: #0f172a; margin-bottom: 0.25rem; }
-            
-            /* 操作类型 - 绝对定位右上角角标 */
-            #tableBody td.td-type { position: absolute; top: 1.25rem; right: 1.25rem; justify-content: flex-end; }
-            
-            /* 变动数量 - 高亮展示 */
-            #tableBody td.td-qty { grid-column: 1 / 3; font-size: 1.5rem; color: #4f46e5; font-weight: 800; margin-bottom: 0.5rem; }
-            #tableBody td.td-qty::before { content: "变动数量:"; font-size: 0.85rem; color: #64748b; font-weight: 600; margin-right: 0.5rem; }
-            #tableBody td.td-qty::after { content: attr(data-unit); font-size: 1rem; color: #64748b; margin-left: 0.25rem; font-weight: normal; }
-            
-            /* 日期与经办人 - 并排显示 */
-            #tableBody td.td-date::before { content: "日期:"; color: #94a3b8; font-size: 0.85rem; margin-right: 0.35rem; }
-            #tableBody td.td-date { font-size: 0.9rem; color: #475569; font-weight: 500; }
-            
-            #tableBody td.td-handler::before { content: "经办:"; color: #94a3b8; font-size: 0.85rem; margin-right: 0.35rem; }
-            #tableBody td.td-handler { justify-content: flex-end; font-size: 0.9rem; color: #475569; font-weight: 500; }
-            
-            /* 备注 - 底部灰色小块 */
-            #tableBody td.td-remarks { 
-                grid-column: 1 / 3; font-size: 0.85rem; color: #64748b; 
-                background: #f8fafc; padding: 0.5rem 0.75rem !important; 
-                border-radius: 0.5rem; margin-top: 0.5rem; 
-            }
-            #tableBody td.td-remarks::before { content: "备注: "; font-weight: 600; margin-right: 0.25rem; color: #94a3b8; }
-            
-            /* 管理员删除按钮 */
-            #tableBody td.action-cell { grid-column: 1 / 3; justify-content: flex-end; margin-top: 0.75rem; padding-top: 0.75rem !important; border-top: 1px dashed #e2e8f0 !important; }
-
-            /* --- 2. 当前库存专属卡片设计 --- */
-            #inventoryBody tr {
-                display: flex; flex-wrap: wrap; align-items: center;
+                display: flex; flex-wrap: wrap; align-items: center; align-content: flex-start;
                 background-color: #ffffff; border-radius: 1rem;
-                box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.01);
+                box-shadow: 0 4px 15px -3px rgba(0,0,0,0.05);
                 border: 1px solid #f1f5f9; padding: 1.25rem; position: relative;
             }
-            #inventoryBody td { border: none !important; padding: 0 !important; }
+            #tableBody td { 
+                border: none !important; padding: 0 !important; width: 100%;
+                display: flex; align-items: center; text-align: left;
+            }
+            #tableBody td::before { content: none !important; } 
             
-            /* 图片左侧对齐 */
-            #inventoryBody td.img-cell { width: 5.5rem; height: 5.5rem; flex-shrink: 0; background: transparent; padding: 0 !important; margin-right: 1.25rem; }
-            #inventoryBody td.img-cell img, #inventoryBody td.img-cell .bg-slate-100 { width: 100%; height: 100%; border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+            #tableBody td.td-index, #tableBody td.td-unit { display: none; } /* 隐藏序号和独立单位列 */
             
-            /* 名称和库存右侧堆叠 */
-            #inventoryBody td[data-label="物品名称"] { width: calc(100% - 6.75rem); display: flex; justify-content: flex-start; font-size: 1.25rem; font-weight: 900; color: #0f172a; margin-bottom: 0.5rem; }
-            #inventoryBody td[data-label="物品名称"] > div { justify-content: flex-start; }
+            #tableBody td.td-checkbox { width: auto; margin-right: 0.75rem; }
+            #tableBody td.td-name { width: auto; flex-grow: 1; font-size: 1.15rem; font-weight: 900; color: #0f172a; margin-bottom: 0.25rem; }
+            #tableBody td.td-type { width: auto; flex-shrink: 0; margin-left: auto; justify-content: flex-end; margin-bottom: 0.25rem; }
             
-            #inventoryBody td[data-label="当前库存"] { width: calc(100% - 6.75rem); margin-left: auto; display: flex; justify-content: flex-start; margin-top: 0.25rem; }
-            #inventoryBody td[data-label="当前库存"] > div { justify-content: flex-start; }
-            #inventoryBody td[data-label="当前库存"] span:first-child::before { content: '余量: '; font-size: 0.9rem; color: #64748b; font-weight: normal; margin-right: 0.25rem; }
+            #tableBody td.td-qty { 
+                width: 50%; font-size: 1.65rem; font-weight: 900; color: #4f46e5; 
+                margin-top: 0.75rem; align-items: baseline;
+            }
+            #tableBody td.td-qty::before { content: '变动:'; font-size: 0.85rem; font-weight: 500; color: #64748b; margin-right: 0.4rem; }
+            #tableBody td.td-qty::after { content: attr(data-unit); font-size: 0.95rem; font-weight: 600; color: #475569; margin-left: 0.2rem; }
             
-            #inventoryBody td[data-label="单位"] { display: none; } /* 单位在 JS 中合并到了库存旁 */
+            #tableBody td.td-handler { 
+                width: 50%; justify-content: flex-end; font-size: 0.9rem; color: #334155; 
+                margin-top: 0.75rem; font-weight: 700;
+            }
+            #tableBody td.td-handler::before { content: '经办: '; font-weight: normal; color: #94a3b8; font-size: 0.8rem; margin-right: 0.25rem; }
             
-            /* 操作按钮区域 */
-            #inventoryBody td.action-cell { width: 100%; justify-content: flex-end; margin-top: 1.25rem; padding-top: 1rem !important; border-top: 1px dashed #e2e8f0 !important; }
+            #tableBody td.td-date { width: 100%; font-size: 0.8rem; color: #94a3b8; margin-top: 0.75rem; }
+            #tableBody td.td-date::before { content: '时间: '; margin-right: 0.25rem; }
+            
+            #tableBody td.td-remarks { 
+                width: 100%; background: #f8fafc; padding: 0.6rem 0.75rem !important; 
+                border-radius: 0.5rem; margin-top: 0.5rem; font-size: 0.85rem; color: #475569; 
+            }
+            #tableBody td.td-remarks::before { content: '备注: '; color: #94a3b8; font-weight: 600; margin-right: 0.25rem; }
+            
+            #tableBody td.action-cell { 
+                width: 100%; justify-content: flex-end; padding-top: 0.75rem !important; 
+                margin-top: 0.5rem; border-top: 1px dashed #e2e8f0 !important; 
+            }
+
+            /* --- 2. 当前库存：清爽左右分栏卡片设计 --- */
+            #inventoryBody tr {
+                display: flex; flex-wrap: wrap; align-items: flex-start;
+                background-color: #ffffff; border-radius: 1.25rem;
+                box-shadow: 0 4px 15px -3px rgba(0,0,0,0.04);
+                border: 1px solid #f1f5f9; padding: 1.25rem; margin-bottom: 1rem;
+            }
+            #inventoryBody td { border: none !important; padding: 0 !important; display: flex; align-items: center; justify-content: flex-start; text-align: left; }
+            #inventoryBody td::before { content: none !important; }
+            
+            #inventoryBody td.img-cell { width: 4.5rem; height: 4.5rem; flex-shrink: 0; margin-right: 1rem; }
+            #inventoryBody td.img-cell img, #inventoryBody td.img-cell .bg-slate-100 { width: 100%; height: 100%; border-radius: 0.85rem; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+            
+            /* 右侧信息包裹容器模拟 */
+            #inventoryBody td[data-label="物品名称"] { width: calc(100% - 5.5rem); font-size: 1.2rem; font-weight: 900; color: #0f172a; margin-bottom: 0.4rem; }
+            
+            #inventoryBody td[data-label="当前库存"] { width: calc(100% - 5.5rem); margin-left: 5.5rem; font-size: 1.25rem; font-weight: 800; color: #4f46e5; }
+            #inventoryBody td[data-label="当前库存"] span:first-child::before { content: '余量: '; font-size: 0.85rem; color: #64748b; font-weight: 600; margin-right: 0.4rem; }
+            #inventoryBody td[data-label="当前库存"] span:first-child::after { content: attr(data-unit); font-size: 0.85rem; color: #64748b; font-weight: 600; margin-left: 0.2rem; }
+            
+            #inventoryBody td[data-label="单位"] { display: none; } /* 隐藏原独立单位列 */
+            
+            #inventoryBody td.action-cell { width: 100%; justify-content: flex-end; padding-top: 1rem !important; margin-top: 0.5rem; border-top: 1px dashed #e2e8f0 !important; }
         }
     </style>
     <script id="embedded-data">window.__EMBEDDED_DATA__ = null;</script>
@@ -163,31 +154,28 @@
     <nav class="bg-white/80 backdrop-blur-xl border-b border-slate-200 shadow-sm sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16 sm:h-20">
-                <!-- 左侧 Logo 与标题 (移动端截断处理) -->
+                <!-- 左侧 Logo 与标题 -->
                 <div class="flex items-center flex-shrink min-w-0">
                     <input type="file" id="logoUploadInput" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
-                    <!-- 优化 Logo 路径，加强防裂图处理 -->
-                    <img id="companyLogo" src="images/logo.svg" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%230f172a\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4\'/%3E%3C/svg%3E';" alt="公司Logo" onclick="triggerLogoUpload()" class="h-8 w-8 sm:h-12 sm:w-12 mr-2 sm:mr-4 flex-shrink-0 rounded-xl bg-slate-50 object-contain shadow-sm cursor-pointer hover:opacity-80 transition-opacity p-1 border border-slate-100" title="点击更换Logo">
+                    <!-- 超强防裂图 Base64 SVG 回退机制 -->
+                    <img id="companyLogo" src="images/logo.svg" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdib3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjMGYxNzJhIj48cGF0aCBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMiIgZD0iTTE5IDIxVjVhMiAyIDAgMDAtMi0ySDdhMiAyIDAgMDAtMiAydjE2bTE0IDBoMm0tMiAwaC01bS05IDBIM20yIDBoNU05IDdoMW0tMSA0aDFtNC00aDFtLTEgNGgxbS01IDEwdi01YTEgMSAwIDAxMS0xaDJhMSAxIDAgMDExIDF2NW0tNCAwaDQiLz48L3N2Zz4=';" alt="公司Logo" onclick="triggerLogoUpload()" class="h-8 w-8 sm:h-12 sm:w-12 mr-2 sm:mr-4 flex-shrink-0 rounded-xl bg-slate-50 object-contain shadow-sm cursor-pointer hover:opacity-80 transition-opacity p-1 border border-slate-100" title="点击更换Logo">
                     <span id="companyName" class="font-extrabold text-base sm:text-2xl tracking-tight truncate max-w-[140px] sm:max-w-xs md:max-w-md lg:max-w-lg cursor-text border-b-2 border-transparent hover:border-slate-300 focus:border-indigo-500 focus:outline-none transition-colors text-slate-900" contenteditable="false" onblur="saveCompanyName()" title="管理员可修改系统名称">港坤公司办公用品管理系统</span>
                 </div>
                 
-                <!-- 右侧操作区 (移动端紧凑处理) -->
+                <!-- 右侧操作区 -->
                 <div class="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
                     <button id="navLoginBtn" onclick="openAuthModal('login')" class="flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-slate-900 hover:bg-slate-800 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-md text-white">
                         <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
                         <span class="hidden sm:inline">管理登录</span>
                     </button>
-                    
                     <button id="navChangePwdBtn" onclick="openAuthModal('changePwd')" class="hidden flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-white hover:bg-slate-50 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-sm border border-slate-200 text-slate-700" title="修改管理密码">
                         <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
                         <span class="hidden sm:inline">修改密码</span>
                     </button>
-                    
                     <button onclick="exportStandaloneApp()" class="admin-only flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-indigo-50 hover:bg-indigo-100 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm border border-indigo-100 text-indigo-700" title="生成包含Logo和数据的独立网页">
                         <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                         <span class="hidden sm:inline">打包分享</span>
                     </button>
-                    
                     <button id="navLogoutBtn" onclick="logoutAdmin()" class="hidden flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-red-50 hover:bg-red-100 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm border border-red-100 text-red-600">
                         <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                         <span class="hidden sm:inline">安全退出</span>
@@ -199,7 +187,7 @@
 
     <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         
-        <!-- 导航切换，默认把库存展示放在第一位 -->
+        <!-- 导航切换 -->
         <div class="border-b border-slate-200 mb-6 sm:mb-8">
             <nav class="-mb-px flex space-x-6 sm:space-x-10" aria-label="Tabs">
                 <button onclick="switchTab('inventory')" id="tab-inventory" class="border-indigo-600 text-indigo-600 whitespace-nowrap py-3 sm:py-4 px-1 border-b-2 font-bold text-sm sm:text-base transition-colors">当前库存展示</button>
@@ -217,10 +205,9 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                         </div>
-                        <!-- 手机端强化搜索框视觉 -->
-                        <input type="text" id="inventorySearchInput" placeholder="🔍 快速搜索物品名称..." class="block w-full pl-10 pr-3 py-3 sm:py-2 border-2 sm:border border-indigo-400 sm:border-slate-300 rounded-xl sm:rounded-lg leading-5 bg-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 sm:focus:ring-blue-500 sm:focus:border-blue-500 text-base sm:text-sm font-medium transition duration-150 ease-in-out shadow-md sm:shadow-sm" oninput="handleInventorySearch()">
+                        <input type="text" id="inventorySearchInput" placeholder="🔍 快速搜索物品名称..." class="block w-full pl-10 pr-3 py-3 sm:py-2 border-2 sm:border border-indigo-300 sm:border-slate-300 rounded-xl sm:rounded-lg leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 sm:focus:ring-blue-500 sm:focus:border-blue-500 text-base sm:text-sm font-medium transition duration-150 ease-in-out shadow-sm" oninput="handleInventorySearch()">
                     </div>
-                    <span id="inventoryCountDisplay" class="text-xs sm:text-sm font-bold text-slate-600 bg-white px-3 sm:px-4 py-2 sm:py-1.5 rounded-xl whitespace-nowrap border-2 border-slate-200 shadow-sm hidden sm:block">共 0 个品类</span>
+                    <span id="inventoryCountDisplay" class="text-xs sm:text-sm font-bold text-slate-600 bg-white px-3 sm:px-4 py-2 sm:py-1.5 rounded-xl whitespace-nowrap border border-slate-200 shadow-sm hidden sm:block">共 0 个品类</span>
                 </div>
                 <button onclick="openCategoryModal()" class="admin-only w-full sm:w-auto justify-center flex items-center px-4 py-3 sm:py-2 bg-indigo-600 border border-transparent rounded-xl sm:rounded-lg shadow-md text-sm font-bold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
                     <svg class="-ml-1 mr-1.5 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
@@ -228,14 +215,14 @@
                 </button>
             </div>
             
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden responsive-table-wrapper">
+            <div class="bg-transparent sm:bg-white sm:rounded-2xl sm:shadow-sm sm:border sm:border-slate-200 overflow-hidden responsive-table-wrapper">
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200 responsive-table">
                         <thead class="bg-slate-50">
                             <tr>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">物品图片</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">物品名称</th>
-                                <th scope="col" onclick="toggleInventorySort()" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors select-none group" title="默认按出入库频次排序，点击可按库存数量排序">
+                                <th scope="col" onclick="toggleInventorySort()" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors select-none group" title="默认按活跃度排序，点击可按库存数量排序">
                                     <div class="flex items-center">
                                         当前库存
                                         <span id="inventorySortIcon" class="ml-1 text-indigo-400 group-hover:text-indigo-600">
@@ -247,7 +234,7 @@
                                 <th scope="col" class="admin-only px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
                             </tr>
                         </thead>
-                        <tbody id="inventoryBody" class="bg-white divide-y divide-slate-100"></tbody>
+                        <tbody id="inventoryBody" class="bg-transparent sm:bg-white sm:divide-y sm:divide-slate-100"></tbody>
                     </table>
                 </div>
             </div>
@@ -262,13 +249,13 @@
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <svg class="h-5 w-5 text-indigo-500 sm:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                         </div>
-                        <input type="text" id="searchInput" placeholder="🔍 搜索名称、经办人、备注..." class="block w-full pl-10 pr-3 py-3 sm:py-2 border-2 sm:border border-indigo-400 sm:border-slate-300 rounded-xl sm:rounded-lg leading-5 bg-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 sm:focus:ring-blue-500 sm:focus:border-blue-500 text-base sm:text-sm font-medium transition duration-150 ease-in-out shadow-md sm:shadow-sm">
+                        <input type="text" id="searchInput" placeholder="🔍 搜索名称、经办人、备注..." class="block w-full pl-10 pr-3 py-3 sm:py-2 border-2 sm:border border-indigo-300 sm:border-slate-300 rounded-xl sm:rounded-lg leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 sm:focus:ring-blue-500 sm:focus:border-blue-500 text-base sm:text-sm font-medium transition duration-150 ease-in-out shadow-sm">
                     </div>
                     
                     <div class="flex items-center gap-2 w-full sm:w-auto">
-                        <input type="date" id="startDate" onchange="handleDateFilter()" class="flex-1 sm:flex-none block w-full px-2 py-3 sm:py-2 border-2 sm:border border-slate-300 rounded-xl sm:rounded-lg leading-5 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition duration-150 ease-in-out shadow-sm" title="开始日期">
+                        <input type="date" id="startDate" onchange="handleDateFilter()" class="flex-1 sm:flex-none block w-full px-2 py-3 sm:py-2 border border-slate-300 rounded-xl sm:rounded-lg leading-5 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition duration-150 ease-in-out shadow-sm" title="开始日期">
                         <span class="text-slate-400 text-xs font-bold">至</span>
-                        <input type="date" id="endDate" onchange="handleDateFilter()" class="flex-1 sm:flex-none block w-full px-2 py-3 sm:py-2 border-2 sm:border border-slate-300 rounded-xl sm:rounded-lg leading-5 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition duration-150 ease-in-out shadow-sm" title="结束日期">
+                        <input type="date" id="endDate" onchange="handleDateFilter()" class="flex-1 sm:flex-none block w-full px-2 py-3 sm:py-2 border border-slate-300 rounded-xl sm:rounded-lg leading-5 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition duration-150 ease-in-out shadow-sm" title="结束日期">
                     </div>
                 </div>
 
@@ -288,7 +275,7 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden responsive-table-wrapper">
+            <div class="bg-transparent sm:bg-white sm:rounded-2xl sm:shadow-sm sm:border sm:border-slate-200 overflow-hidden responsive-table-wrapper">
                 <div class="overflow-x-auto">
                     <table id="inventoryTable" class="min-w-full divide-y divide-slate-200 responsive-table">
                         <thead class="bg-slate-50">
@@ -323,7 +310,7 @@
                                 <th scope="col" class="admin-only px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
                             </tr>
                         </thead>
-                        <tbody id="tableBody" class="bg-white divide-y divide-slate-100"></tbody>
+                        <tbody id="tableBody" class="bg-transparent sm:bg-white sm:divide-y sm:divide-slate-100"></tbody>
                     </table>
                 </div>
                 <div id="emptyState" class="hidden flex-col items-center justify-center py-16 text-slate-500">
@@ -336,12 +323,12 @@
         </div>
     </main>
 
-    <!-- UI Modal: Auth (Login/Change Password) -->
-    <div id="authModal" class="fixed inset-0 z-[60] modal-hidden transition-opacity items-center justify-center bg-slate-900 bg-opacity-60 backdrop-blur-sm">
+    <!-- UI Modal: Auth -->
+    <div id="authModal" class="fixed inset-0 z-[60] modal-hidden transition-opacity items-center justify-center bg-slate-900/60 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden transform transition-all">
             <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white">
                 <h3 id="authModalTitle" class="text-xl font-extrabold text-slate-900">管理员登录</h3>
-                <button type="button" onclick="closeAuthModal()" class="text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-full p-1 transition-colors focus:outline-none">
+                <button type="button" onclick="closeAuthModal()" class="text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-full p-1.5 transition-colors focus:outline-none">
                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
             </div>
@@ -349,11 +336,11 @@
                 <form id="authForm" class="space-y-5" onsubmit="handleAuthSubmit(event)">
                     <div id="oldPwdGroup" class="hidden">
                         <label class="block text-sm font-bold text-slate-700 mb-2">原密码</label>
-                        <input type="password" id="authOldPwd" placeholder="请输入原密码" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm transition-colors text-base">
+                        <input type="password" id="authOldPwd" placeholder="请输入原密码" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm transition-colors text-base">
                     </div>
                     <div>
                         <label id="mainPwdLabel" class="block text-sm font-bold text-slate-700 mb-2">管理密码</label>
-                        <input type="password" id="authMainPwd" required placeholder="请输入密码" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm transition-colors text-base">
+                        <input type="password" id="authMainPwd" required placeholder="请输入密码" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm transition-colors text-base">
                         <p id="authHint" class="mt-2.5 text-xs text-slate-500 flex items-center font-medium"><svg class="w-4 h-4 mr-1 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> 默认初始密码为 123456</p>
                     </div>
                     <div class="pt-2">
@@ -367,17 +354,17 @@
     </div>
 
     <!-- UI Modal: Custom Prompt/Confirm -->
-    <div id="customDialog" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900 bg-opacity-60 transition-opacity backdrop-blur-sm">
+    <div id="customDialog" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/60 transition-opacity backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden transform transition-all">
             <div class="px-6 py-5 border-b border-slate-100 bg-white">
                 <h3 id="dialogTitle" class="text-xl font-extrabold text-slate-900">提示</h3>
             </div>
             <div class="px-6 py-6">
                 <p id="dialogMessage" class="text-base text-slate-600 whitespace-pre-wrap leading-relaxed font-medium"></p>
-                <input type="text" id="dialogInput" class="hidden mt-5 w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm text-slate-900 font-bold text-lg">
+                <input type="text" id="dialogInput" class="hidden mt-5 w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm text-slate-900 font-bold text-lg">
             </div>
             <div class="px-6 py-4 bg-slate-50 flex justify-end gap-3 rounded-b-2xl border-t border-slate-100">
-                <button id="dialogCancelBtn" class="hidden px-5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-100 focus:outline-none shadow-sm transition-colors">取消</button>
+                <button id="dialogCancelBtn" class="hidden px-5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 focus:outline-none shadow-sm transition-colors">取消</button>
                 <button id="dialogConfirmBtn" class="px-5 py-2.5 bg-indigo-600 border border-transparent rounded-xl text-sm font-bold text-white hover:bg-indigo-700 focus:outline-none shadow-md transition-colors">确定</button>
             </div>
         </div>
@@ -386,7 +373,7 @@
     <input type="file" id="imageUploadInput" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
 
     <!-- 图片放大预览 -->
-    <div id="imagePreviewModal" class="fixed inset-0 z-50 modal-hidden transition-opacity items-center justify-center bg-slate-900 bg-opacity-90 backdrop-blur-sm" onclick="closeImagePreview()">
+    <div id="imagePreviewModal" class="fixed inset-0 z-50 modal-hidden transition-opacity items-center justify-center bg-slate-900/90 backdrop-blur-sm" onclick="closeImagePreview()">
         <div class="relative max-w-3xl w-full mx-4 flex justify-center items-center h-full" onclick="event.stopPropagation()">
             <button onclick="closeImagePreview()" class="absolute top-4 right-4 sm:-top-12 sm:right-0 text-white bg-black/50 rounded-full p-2 hover:bg-black/70 focus:outline-none backdrop-blur transition-colors">
                 <svg class="h-6 w-6 sm:h-8 sm:w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -396,7 +383,7 @@
     </div>
 
     <!-- 录入表单 Modal -->
-    <div id="recordModal" class="fixed inset-0 z-50 modal-hidden transition-opacity items-center justify-center bg-slate-900 bg-opacity-60 backdrop-blur-sm">
+    <div id="recordModal" class="fixed inset-0 z-50 modal-hidden transition-opacity items-center justify-center bg-slate-900/60 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden transform transition-all max-h-[90vh] flex flex-col">
             <div class="px-5 sm:px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
                 <h3 class="text-xl font-extrabold text-slate-900">新增出入库记录</h3>
@@ -407,11 +394,11 @@
                     <div class="grid grid-cols-2 gap-4 sm:gap-5">
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-2">日期 *</label>
-                            <input type="date" id="formDate" required class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm text-sm font-medium transition-colors">
+                            <input type="date" id="formDate" required class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm text-sm font-medium transition-colors">
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-2">操作类型 *</label>
-                            <select id="formType" required class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm text-sm bg-white font-medium transition-colors cursor-pointer">
+                            <select id="formType" required class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm text-sm bg-white font-medium transition-colors cursor-pointer">
                                 <option value="入库">🟢 购入 / 增加库存</option>
                                 <option value="出库">🔴 领用 / 减少库存</option>
                             </select>
@@ -420,7 +407,7 @@
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-2">物品名称 *</label>
                         <div class="relative">
-                            <input type="text" id="formItemName" required autocomplete="off" placeholder="如：A4打印纸、中性笔..." oninput="handleItemNameInput();showSuggestions();" class="w-full pl-4 pr-10 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm text-sm font-bold transition-colors">
+                            <input type="text" id="formItemName" required autocomplete="off" placeholder="如：A4打印纸、中性笔..." oninput="handleItemNameInput();showSuggestions();" class="w-full pl-4 pr-10 py-3 border border-slate-300 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm text-sm font-bold transition-colors">
                             <button type="button" onclick="toggleItemDropdown()" class="absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-indigo-600 focus:outline-none" title="展开现有物品列表"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg></button>
                             <ul id="itemDropdown" class="absolute z-10 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-2xl max-h-48 overflow-y-auto hidden custom-scrollbar"></ul>
                         </div>
@@ -428,20 +415,20 @@
                     <div class="grid grid-cols-2 gap-4 sm:gap-5">
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-2">数量 *</label>
-                            <input type="number" id="formQuantity" min="1" required placeholder="输入数字" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm text-base font-extrabold text-indigo-600 transition-colors">
+                            <input type="number" id="formQuantity" min="1" required placeholder="输入数字" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm text-base font-extrabold text-indigo-600 transition-colors">
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-2">单位 *</label>
-                            <input type="text" id="formUnit" required placeholder="如：包、支..." class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm text-sm text-slate-700 font-medium transition-colors">
+                            <input type="text" id="formUnit" required placeholder="如：包、支..." class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm text-sm text-slate-700 font-medium transition-colors">
                         </div>
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-2">经办人 / 领用人 *</label>
-                        <input type="text" id="formHandler" required placeholder="填写人名" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm text-sm font-medium transition-colors">
+                        <input type="text" id="formHandler" required placeholder="填写人名" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm text-sm font-medium transition-colors">
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-2">备注</label>
-                        <textarea id="formRemarks" rows="2" placeholder="选填，如：研发部申领、日常采购等" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm text-sm font-medium transition-colors"></textarea>
+                        <textarea id="formRemarks" rows="2" placeholder="选填，如：研发部申领、日常采购等" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm text-sm font-medium transition-colors"></textarea>
                     </div>
                 </form>
             </div>
@@ -454,7 +441,7 @@
     </div>
 
     <!-- 品类库直接新增 Modal -->
-    <div id="categoryModal" class="fixed inset-0 z-50 modal-hidden transition-opacity items-center justify-center bg-slate-900 bg-opacity-60 backdrop-blur-sm">
+    <div id="categoryModal" class="fixed inset-0 z-50 modal-hidden transition-opacity items-center justify-center bg-slate-900/60 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
             <div class="px-5 sm:px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
                 <h3 class="text-xl font-extrabold text-slate-900">建档新品类</h3>
@@ -462,10 +449,10 @@
             </div>
             <div class="px-5 sm:px-6 py-6 overflow-y-auto grow custom-scrollbar">
                 <form id="categoryForm" class="space-y-5">
-                    <div><label class="block text-sm font-bold text-slate-700 mb-2">物品名称 *</label><input type="text" id="catItemName" required placeholder="填写新品类名称" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm text-sm font-bold transition-colors"></div>
+                    <div><label class="block text-sm font-bold text-slate-700 mb-2">物品名称 *</label><input type="text" id="catItemName" required placeholder="填写新品类名称" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm text-sm font-bold transition-colors"></div>
                     <div class="grid grid-cols-2 gap-4 sm:gap-5">
-                        <div><label class="block text-sm font-bold text-slate-700 mb-2">单位 *</label><input type="text" id="catUnit" required placeholder="如：包、个" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm text-sm font-medium transition-colors"></div>
-                        <div><label class="block text-sm font-bold text-slate-700 mb-2">初始库存 *</label><input type="number" id="catStock" min="0" value="0" required class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm text-lg font-extrabold text-indigo-600 transition-colors"></div>
+                        <div><label class="block text-sm font-bold text-slate-700 mb-2">单位 *</label><input type="text" id="catUnit" required placeholder="如：包、个" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm text-sm font-medium transition-colors"></div>
+                        <div><label class="block text-sm font-bold text-slate-700 mb-2">初始库存 *</label><input type="number" id="catStock" min="0" value="0" required class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:border-indigo-500 shadow-sm text-lg font-extrabold text-indigo-600 transition-colors"></div>
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-2">物品图片 (可选)</label>
@@ -542,7 +529,6 @@
         /* ================= 全局变量与动态适配配置 ================= */
         let itemsPerPage = window.innerWidth <= 768 ? 5 : 10;
         
-        // 监听窗口大小变化自动调整每页显示数量
         window.addEventListener('resize', () => {
             const newItemsPerPage = window.innerWidth <= 768 ? 5 : 10;
             if (newItemsPerPage !== itemsPerPage) {
@@ -676,7 +662,6 @@
         
         const initDate = '2026-04-12';
         
-        // 核心数据保留
         const defaultData = [
             { id: 67, date: '2026-04-15', itemName: '布艺档案袋', type: '出库', quantity: 1, unit: '个', handler: '曹兴焱', remarks: '-' },
             { id: 66, date: '2026-04-13', itemName: '大档案盒', type: '出库', quantity: 1, unit: '个', handler: '唐之超', remarks: '-' },
@@ -750,8 +735,8 @@
         let inventoryData = [];
         let productCatalog = {};
         
-        const localData = localStorage.getItem('inventoryData_v7');
-        const localCatalog = localStorage.getItem('productCatalog_v7');
+        const localData = localStorage.getItem('inventoryData_v8');
+        const localCatalog = localStorage.getItem('productCatalog_v8');
         if (localData) {
             try {
                 inventoryData = JSON.parse(localData);
@@ -765,8 +750,8 @@
         } else if (window.__EMBEDDED_DATA__) {
             inventoryData = window.__EMBEDDED_DATA__.inventoryData;
             productCatalog = window.__EMBEDDED_DATA__.productCatalog;
-            localStorage.setItem('inventoryData_v7', JSON.stringify(inventoryData));
-            localStorage.setItem('productCatalog_v7', JSON.stringify(productCatalog));
+            localStorage.setItem('inventoryData_v8', JSON.stringify(inventoryData));
+            localStorage.setItem('productCatalog_v8', JSON.stringify(productCatalog));
         } else {
             inventoryData = [...defaultData];
             productCatalog = {};
@@ -775,8 +760,8 @@
 
         function saveDataToStorage() {
             try {
-                localStorage.setItem('inventoryData_v7', JSON.stringify(inventoryData));
-                localStorage.setItem('productCatalog_v7', JSON.stringify(productCatalog));
+                localStorage.setItem('inventoryData_v8', JSON.stringify(inventoryData));
+                localStorage.setItem('productCatalog_v8', JSON.stringify(productCatalog));
             } catch (e) {
                 showCustomDialog({ message: '数据保存失败，请检查浏览器存储空间。' });
             }
@@ -873,10 +858,9 @@
             document.getElementById('formDate').value = getTodayString();
             
             initCatalog(); 
-            setAdminStatus(false); // 默认浏览模式
+            setAdminStatus(false); 
             
             document.getElementById('searchInput').addEventListener('input', handleSearch);
-            // 初始化直接渲染一次库存
             switchTab('inventory');
         });
 
@@ -908,25 +892,25 @@
                 let html = '';
                 if (isAdmin) {
                     html += `
-                    <td data-label="批量选择" class="td-checkbox px-4 py-4 whitespace-nowrap">
+                    <td class="td-checkbox px-4 py-4 whitespace-nowrap">
                         <input type="checkbox" value="${item.id}" onchange="toggleSelectRow(event, ${item.id})" ${isSelected ? 'checked' : ''} class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer w-4 h-4 sm:w-5 sm:h-5">
                     </td>`;
                 }
                 
                 html += `
-                    <td data-label="序号" class="td-index px-6 py-4 text-sm text-slate-500">${index + 1}</td>
-                    <td data-label="日期" class="td-date px-6 py-4 text-sm text-slate-900">${item.date}</td>
-                    <td data-label="物品名称" class="td-name px-6 py-4 text-sm font-bold text-slate-900">${item.itemName}</td>
-                    <td data-label="操作类型" class="td-type px-6 py-4 text-sm"><span class="px-2 py-1 inline-flex text-xs leading-5 font-bold rounded-lg shadow-sm ${typeStyle}">${item.type}</span></td>
-                    <td data-label="数量" data-unit="${item.unit}" class="td-qty px-6 py-4 text-sm text-slate-900 font-bold">${item.quantity}</td>
-                    <td data-label="单位" class="td-unit px-6 py-4 text-sm text-slate-500">${item.unit}</td>
-                    <td data-label="经办人" class="td-handler px-6 py-4 text-sm text-slate-700">${item.handler}</td>
-                    <td data-label="备注" class="td-remarks px-6 py-4 text-sm text-slate-500 sm:truncate sm:max-w-xs">${item.remarks || '-'}</td>
+                    <td class="td-index px-6 py-4 text-sm text-slate-500">${index + 1}</td>
+                    <td class="td-name px-6 py-4 text-sm font-bold text-slate-900">${item.itemName}</td>
+                    <td class="td-type px-6 py-4 text-sm"><span class="px-2 py-1 inline-flex text-xs leading-5 font-bold rounded-lg shadow-sm ${typeStyle}">${item.type}</span></td>
+                    <td data-unit="${item.unit}" class="td-qty px-6 py-4 text-sm text-slate-900 font-bold">${item.quantity}</td>
+                    <td class="td-unit px-6 py-4 text-sm text-slate-500">${item.unit}</td>
+                    <td class="td-date px-6 py-4 text-sm text-slate-900">${item.date}</td>
+                    <td class="td-handler px-6 py-4 text-sm text-slate-700">${item.handler}</td>
+                    <td class="td-remarks px-6 py-4 text-sm text-slate-500 sm:truncate sm:max-w-xs">${item.remarks || '-'}</td>
                 `;
 
                 if (isAdmin) {
                     html += `
-                    <td data-label="明细操作" class="action-cell px-6 py-4 text-sm text-slate-500">
+                    <td class="action-cell px-6 py-4 text-sm text-slate-500">
                         <button onclick="deleteSingle(${item.id})" class="text-rose-500 hover:text-white hover:bg-rose-500 px-4 py-2 rounded-xl font-bold focus:outline-none transition-colors border border-rose-200 hover:border-transparent text-xs sm:text-sm shadow-sm">删除此明细</button>
                     </td>`;
                 }
@@ -1064,14 +1048,13 @@
             
             tbody.innerHTML = '';
             let stockMap = {};
-            let frequencyMap = {}; // 出入库频次统计
+            let frequencyMap = {}; 
 
             inventoryData.forEach(item => {
                 if (!stockMap[item.itemName]) stockMap[item.itemName] = 0;
                 if (item.type === '入库') stockMap[item.itemName] += item.quantity;
                 else if (item.type === '出库') stockMap[item.itemName] -= item.quantity;
                 
-                // 统计出入库活跃度 (排除系统初始化，反映真实业务使用频率)
                 if (item.handler !== '系统初始化') {
                     frequencyMap[item.itemName] = (frequencyMap[item.itemName] || 0) + 1;
                 }
@@ -1090,16 +1073,13 @@
             if (countDisplay) countDisplay.innerText = `共 ${filteredItems.length} 个品类`;
 
             if (currentInventorySort === 'none') {
-                // 默认状态：智能按活跃度排序，出入库频次越高的越靠前
                 filteredItems.sort((a, b) => {
                     const freqA = frequencyMap[a.itemName] || 0;
                     const freqB = frequencyMap[b.itemName] || 0;
                     if (freqA !== freqB) return freqB - freqA;
-                    // 频次相同时，按库存量降序兜底
                     return b.currentStock - a.currentStock;
                 });
             } else {
-                // 用户点击排序：按库存数量排序
                 filteredItems.sort((a, b) => currentInventorySort === 'asc' ? a.currentStock - b.currentStock : b.currentStock - a.currentStock);
             }
             
@@ -1119,16 +1099,14 @@
                 let imgCell = document.createElement('td'); 
                 imgCell.className = "img-cell px-6 py-4";
                 
-                // GitHub Pages 适配：如果本地没有上传过 base64 图片，默认去同级 images 文件夹下找同名 .jpg 图片
                 const imgPath = catalogInfo.image || `images/${itemName}.jpg`;
                 
                 const img = document.createElement('img'); 
                 img.src = imgPath;
                 img.className = "h-16 w-16 sm:h-12 sm:w-12 object-cover rounded-xl shadow-sm cursor-pointer border border-slate-200 hover:opacity-80 transition-opacity bg-white";
                 
-                // 找不到图片时的极致回退
                 img.onerror = function() {
-                    this.onerror = null; // 防止死循环
+                    this.onerror = null; 
                     this.outerHTML = `<div class="h-16 w-16 sm:h-12 sm:w-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-300 border border-slate-200 shadow-inner"><svg class="w-6 h-6 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>`;
                 };
                 
@@ -1193,7 +1171,6 @@
             paginationContainer.appendChild(infoDiv);
             
             const buttonsDiv = document.createElement('div');
-            // 手机端让按钮可以换行居中
             buttonsDiv.className = 'flex flex-wrap justify-center sm:justify-end gap-1.5 w-full sm:w-auto';
             
             const prevButton = document.createElement('button');
@@ -1447,7 +1424,6 @@
 
         async function exportToExcel() {
             if(inventoryData.length === 0) { await showCustomDialog({ message: "当前没有可导出的数据！" }); return; }
-            // 这里为了导出完整数据，我们需要暂时移除卡片模式的影响，可以直接构建一个纯数据工作表
             const wsData = [["序号", "日期", "物品名称", "操作类型", "数量", "单位", "经办人", "备注"]];
             currentViewData.forEach((item, idx) => {
                 wsData.push([idx + 1, item.date, item.itemName, item.type, item.quantity, item.unit, item.handler, item.remarks || ""]);
