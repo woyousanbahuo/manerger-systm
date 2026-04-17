@@ -8,11 +8,13 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <title>办公用品库房出入库管理</title>
 
-    <!-- Firebase SDK 模块化引入 -->
+    <!-- Firebase SDK 模块化引入 (包含 Firestore 和 Auth) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-analytics.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
+        // 你的 Firebase 配置
         const firebaseConfig = {
             apiKey: "AIzaSyBC98oZpXyaylau2UC0203Euo4uCKTPtaQ",
             authDomain: "manerger-systm.firebaseapp.com",
@@ -25,8 +27,17 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        // 将 Firebase 实例挂载到 window 供全局调用
         window.firebaseApp = app;
+        window.firebaseAuth = auth;
+        window.firebaseDb = db;
+        window.firebaseSignIn = signInAnonymously;
+        window.firebaseDoc = doc;
+        window.firebaseSetDoc = setDoc;
+        window.firebaseOnSnapshot = onSnapshot;
     </script>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -74,50 +85,54 @@
             .responsive-table-wrapper { border: none !important; box-shadow: none !important; background: transparent !important; }
             .responsive-table { border: none !important; box-shadow: none !important; }
             .responsive-table thead { display: none; }
-            .responsive-table tbody { display: flex; flex-direction: column; padding-bottom: 1.5rem; }
+            .responsive-table tbody { display: flex; flex-direction: column; gap: 1rem; padding-bottom: 1.5rem; }
             
-            /* --- 1. 出入库明细：彻底抛弃Grid，采用极稳健 Flexbox 账单式排版 --- */
+            /* --- 1. 出入库明细：重构为最稳固的 Grid 布局，绝不错位 --- */
             #tableBody tr {
-                display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
-                background-color: #ffffff; border-radius: 1rem;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.5rem;
+                background-color: #ffffff;
+                border-radius: 1rem;
                 box-shadow: 0 4px 15px -3px rgba(0,0,0,0.08);
-                border: 1px solid #f1f5f9; padding: 1.25rem; margin-bottom: 1rem; gap: 0;
+                border: 1px solid #f1f5f9;
+                padding: 1.25rem;
+                align-items: center;
             }
-            #tableBody td { border: none !important; padding: 0 !important; display: flex; align-items: center; width: auto; }
+            #tableBody td { border: none !important; padding: 0 !important; display: flex; align-items: center; }
             #tableBody td::before { content: none !important; } 
             #tableBody td.td-index, #tableBody td.td-unit { display: none; } /* 隐藏无用列 */
             
-            #tableBody td.td-checkbox { width: 100%; margin-bottom: 0.5rem; }
+            #tableBody td.td-checkbox { grid-column: 1 / 3; margin-bottom: 0.25rem; }
             
-            /* 第一排：物品名称与操作类型 */
-            #tableBody td.td-name { width: calc(100% - 5rem); font-size: 1.2rem; font-weight: 900; color: #0f172a; margin-bottom: 0.5rem; line-height: 1.3; }
-            #tableBody td.td-type { width: 5rem; justify-content: flex-end; margin-bottom: 0.5rem; }
+            /* 物品名称居左上，类型居右上 */
+            #tableBody td.td-name { grid-column: 1; font-size: 1.15rem; font-weight: 800; color: #0f172a; line-height: 1.3; }
+            #tableBody td.td-type { grid-column: 2; justify-content: flex-end; align-items: flex-start; }
             
-            /* 第二排：变动数量独立一行 */
-            #tableBody td.td-qty { width: 100%; font-size: 1.7rem; font-weight: 900; color: #4f46e5; margin-bottom: 0.75rem; align-items: baseline; }
-            #tableBody td.td-qty::before { content: '变动数量:'; font-size: 0.85rem; font-weight: 600; color: #64748b; margin-right: 0.5rem; letter-spacing: 1px; }
+            /* 变动数量独占一行，大字高亮 */
+            #tableBody td.td-qty { grid-column: 1 / 3; font-size: 1.75rem; font-weight: 900; color: #4f46e5; margin: 0.25rem 0; align-items: baseline; }
+            #tableBody td.td-qty::before { content: '变动:'; font-size: 0.85rem; font-weight: 600; color: #64748b; margin-right: 0.4rem; }
             #tableBody td.td-qty::after { content: attr(data-unit); font-size: 0.9rem; font-weight: 600; color: #64748b; margin-left: 0.2rem; }
             
-            /* 第三排：日期和经办人平分一行，底部虚线 */
-            #tableBody td.td-date { width: 50%; font-size: 0.85rem; color: #64748b; border-bottom: 1px dashed #e2e8f0; padding-bottom: 0.75rem !important; }
+            /* 日期和经办人平分底部，踩在虚线上 */
+            #tableBody td.td-date { grid-column: 1; font-size: 0.85rem; color: #64748b; border-bottom: 1px dashed #e2e8f0; padding-bottom: 0.75rem !important; }
             #tableBody td.td-date::before { content: '日期: '; margin-right: 0.25rem; }
             
-            #tableBody td.td-handler { width: 50%; justify-content: flex-end; font-size: 0.9rem; font-weight: 800; color: #1e293b; border-bottom: 1px dashed #e2e8f0; padding-bottom: 0.75rem !important; }
+            #tableBody td.td-handler { grid-column: 2; justify-content: flex-end; font-size: 0.9rem; font-weight: 800; color: #1e293b; border-bottom: 1px dashed #e2e8f0; padding-bottom: 0.75rem !important; }
             #tableBody td.td-handler::before { content: '经办: '; font-weight: normal; font-size: 0.8rem; color: #94a3b8; margin-right: 0.25rem; }
             
-            /* 第四排：备注 */
-            #tableBody td.td-remarks { width: 100%; background: #f8fafc; padding: 0.75rem !important; border-radius: 0.5rem; margin-top: 0.75rem; font-size: 0.85rem; color: #475569; }
+            /* 备注区域独占底栏 */
+            #tableBody td.td-remarks { grid-column: 1 / 3; background: #f8fafc; padding: 0.75rem !important; border-radius: 0.5rem; margin-top: 0.5rem; font-size: 0.85rem; color: #475569; line-height: 1.4; }
             #tableBody td.td-remarks::before { content: '备注: '; color: #94a3b8; font-weight: 700; margin-right: 0.25rem; }
             
-            /* 第五排：操作 */
-            #tableBody td.action-cell { width: 100%; justify-content: flex-end; margin-top: 0.5rem; padding-top: 0.5rem !important; }
+            #tableBody td.action-cell { grid-column: 1 / 3; justify-content: flex-end; padding-top: 0.5rem !important; }
 
             /* --- 2. 当前库存：清爽左右分栏卡片设计 --- */
             #inventoryBody tr {
                 display: flex; flex-wrap: wrap; align-items: center; align-content: center;
                 background-color: #ffffff; border-radius: 1rem;
                 box-shadow: 0 4px 15px -3px rgba(0,0,0,0.08);
-                border: 1px solid #f1f5f9; padding: 1.25rem; margin-bottom: 1rem;
+                border: 1px solid #f1f5f9; padding: 1rem; margin-bottom: 1rem;
             }
             #inventoryBody td { border: none !important; padding: 0 !important; display: flex; align-items: center; justify-content: flex-start; text-align: left; }
             #inventoryBody td::before { content: none !important; }
@@ -141,11 +156,11 @@
     <nav class="bg-white/80 backdrop-blur-xl border-b border-slate-200 shadow-sm sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between min-h-[4rem] sm:h-20 py-2 sm:py-0">
-                <!-- 左侧 Logo 与标题 (移除了导致被截断的定宽代码，实现完全自适应) -->
+                <!-- 左侧 Logo 与标题 -->
                 <div class="flex items-center flex-1 pr-2">
                     <input type="file" id="logoUploadInput" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
-                    <!-- 终极防裂图机制：匹配大写 Logo.svg，如果失败尝试去根目录找，再失败替换纯代码图标 -->
-                    <img id="companyLogo" src="images/Logo.svg" onerror="if(this.src.includes('images/Logo.svg')){this.src='Logo.svg';}else{this.onerror=null;this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdib3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjMGYxNzJhIj48cGF0aCBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMiIgZD0iTTE5IDIxVjVhMiAyIDAgMDAtMi0ySDdhMiAyIDAgMDAtMiAydjE2bTE0IDBoMm0tMiAwaC01bS05IDBIM20yIDBoNU05IDdoMW0tMSA0aDFtNC00aDFtLTEgNGgxbS01IDEwdi01YTEgMSAwIDAxMS0xaDJhMSAxIDAgMDExIDF2NW0tNCAwaDQiLz48L3N2Zz4=';}" alt="公司Logo" onclick="triggerLogoUpload()" class="h-10 w-10 sm:h-12 sm:w-12 mr-2.5 sm:mr-4 flex-shrink-0 rounded-xl bg-slate-50 object-contain shadow-sm cursor-pointer hover:opacity-80 transition-opacity p-1 border border-slate-100" title="点击更换Logo">
+                    <!-- 终极防裂图机制：优先找根目录 Logo.svg，其次找 images/Logo.svg，失败使用原生代码图标 -->
+                    <img id="companyLogo" src="./Logo.svg" onerror="if(this.getAttribute('data-retried') !== 'true') { this.setAttribute('data-retried', 'true'); this.src='./images/Logo.svg'; } else { this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdib3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjMGYxNzJhIj48cGF0aCBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMiIgZD0iTTE5IDIxVjVhMiAyIDAgMDAtMi0ySDdhMiAyIDAgMDAtMiAydjE2bTE0IDBoMm0tMiAwaC01bS05IDBIM20yIDBoNU05IDdoMW0tMSA0aDFtNC00aDFtLTEgNGgxbS01IDEwdi01YTEgMSAwIDAxMS0xaDJhMSAxIDAgMDExIDF2NW0tNCAwaDQiLz48L3N2Zz4='; }" alt="公司Logo" onclick="triggerLogoUpload()" class="h-10 w-10 sm:h-12 sm:w-12 mr-2.5 sm:mr-4 flex-shrink-0 rounded-xl bg-slate-50 object-contain shadow-sm cursor-pointer hover:opacity-80 transition-opacity p-1 border border-slate-100" title="点击更换Logo">
                     <span id="companyName" class="font-extrabold text-[15px] sm:text-2xl leading-tight line-clamp-2 break-words cursor-text border-b-2 border-transparent hover:border-slate-300 focus:border-indigo-500 focus:outline-none transition-colors text-slate-900" contenteditable="false" onblur="saveCompanyName()" title="管理员可修改系统名称">港坤公司办公用品管理系统</span>
                 </div>
                 
@@ -157,15 +172,15 @@
                     </button>
                     <button id="navChangePwdBtn" onclick="openAuthModal('changePwd')" class="hidden flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-white hover:bg-slate-50 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-sm border border-slate-200 text-slate-700" title="修改管理密码">
                         <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
-                        <span class="hidden sm:inline">修改密码</span>
+                        <span class="hidden sm:inline">密码</span>
                     </button>
-                    <button onclick="exportStandaloneApp()" class="admin-only flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-indigo-50 hover:bg-indigo-100 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm border border-indigo-100 text-indigo-700" title="生成包含Logo和数据的独立网页">
-                        <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                        <span class="hidden sm:inline">打包分享</span>
+                    <button id="cloudSyncIndicator" class="hidden flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-emerald-50 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm border border-emerald-100 text-emerald-600">
+                        <svg class="w-4 h-4 sm:mr-1.5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
+                        <span class="hidden sm:inline">已开启云同步</span>
                     </button>
                     <button id="navLogoutBtn" onclick="logoutAdmin()" class="hidden flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-red-50 hover:bg-red-100 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm border border-red-100 text-red-600">
                         <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                        <span class="hidden sm:inline">安全退出</span>
+                        <span class="hidden sm:inline">退出</span>
                     </button>
                 </div>
             </div>
@@ -527,14 +542,228 @@
             }
         });
 
-        /* ================= 权限控制核心逻辑 ================= */
+        /* ================= 权限与 Firebase 云端同步逻辑 ================= */
         let isAdmin = false; 
-        if (!localStorage.getItem('adminPassword')) {
-            localStorage.setItem('adminPassword', '123456');
-        }
-        
-        let authMode = 'login';
+        const APP_ID = 'manerger-systm'; // 全局统一应用ID
+        let isDbReady = false;
 
+        // 全局数据状态
+        let inventoryData = [];
+        let productCatalog = {};
+        
+        // --- 核心：接入 Firebase Firestore 实现多端同步 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const auth = window.firebaseAuth;
+            const signInAnonymously = window.firebaseSignIn;
+            
+            // 匿名登录以获取数据库权限
+            signInAnonymously(auth).then(() => {
+                const db = window.firebaseDb;
+                const docRef = window.firebaseDoc(db, 'artifacts', APP_ID, 'public', 'data', 'store', 'mainData');
+                
+                // 实时监听云端数据变化 (相当于自动同步)
+                window.firebaseOnSnapshot(docRef, (snapshot) => {
+                    isDbReady = true; 
+                    if (snapshot.exists()) {
+                        const data = snapshot.data();
+                        
+                        // 1. 同步数据字典和明细
+                        inventoryData = data.inventoryData || [];
+                        productCatalog = data.productCatalog || {};
+                        
+                        // 2. 同步设置（密码和公司名称）
+                        if (data.adminPassword) {
+                            localStorage.setItem('adminPassword', data.adminPassword);
+                        }
+                        if (data.companyName) {
+                            document.getElementById('companyName').innerText = data.companyName;
+                        }
+
+                        // 显示云同步成功标志
+                        const cloudIndicator = document.getElementById('cloudSyncIndicator');
+                        if (cloudIndicator && isAdmin) cloudIndicator.classList.remove('hidden');
+
+                        // 3. 重新渲染界面
+                        updateTable();
+                        if (!document.getElementById('inventoryView').classList.contains('hidden')) {
+                            renderInventory();
+                        }
+                    } else {
+                        // 初次使用，云端没数据，执行本地初始化并推送到云端
+                        initFallbackData();
+                        saveDataToFirebase();
+                    }
+                }, (error) => {
+                    isDbReady = false; 
+                    console.warn("Firestore 数据库未就绪:", error.message);
+                    
+                    // 优雅捕获 API 未启用的错误
+                    if (error.code === 'permission-denied' || String(error).includes('has not been used') || String(error).includes('disabled')) {
+                        showCustomDialog({
+                            title: '⚠️ 需要创建 Firestore 数据库',
+                            message: '身份验证已成功，但云端数据库尚未初始化！\n\n【最后一步修复】\n请在浏览器打开您的 Firebase 控制台：\n进入 Firestore Database 菜单 -> 点击 "Create database" -> 务必选择 "Start in test mode (测试模式)" -> 启用。\n\n建好后刷新本页面即可开启多端自动同步！在此之前，已为您切换为【本地单机模式】。',
+                            type: 'alert'
+                        });
+                    } else {
+                        showToast("无法连接云端数据库，系统已临时回退为单机模式");
+                    }
+                    initFallbackData(); 
+                });
+            }).catch(err => {
+                console.warn("Firebase Auth 认证失败:", err.message);
+                if (err.code === 'auth/configuration-not-found' || err.code === 'auth/operation-not-allowed') {
+                    showCustomDialog({
+                        title: '⚠️ 缺少 Firebase 配置',
+                        message: '系统检测到您的 Firebase 未开启匿名登录，云端同步无法使用。\n\n【修复步骤】\n1. 进入 Firebase 控制台\n2. 点击左侧 Authentication\n3. 切换到 Sign-in method 标签页\n4. 找到 Anonymous (匿名) 并开启它\n\n在此之前，系统已自动为您切换为【本地单机模式】，可继续正常使用。',
+                        type: 'alert'
+                    });
+                } else {
+                    showToast("无法连接云端身份验证，系统已临时回退为单机模式");
+                }
+                initFallbackData();
+            });
+            
+            setAdminStatus(false); 
+            document.getElementById('searchInput').addEventListener('input', handleSearch);
+            switchTab('inventory');
+        });
+
+        // 保存数据到 Firebase 云端 (取代原有的 LocalStorage)
+        function saveDataToFirebase() {
+            if (!isDbReady) {
+                // 如果云端不可用，先保存到本地单机缓存
+                localStorage.setItem('inventoryData_v9', JSON.stringify(inventoryData));
+                localStorage.setItem('productCatalog_v9', JSON.stringify(productCatalog));
+                return;
+            }
+            const db = window.firebaseDb;
+            const docRef = window.firebaseDoc(db, 'artifacts', APP_ID, 'public', 'data', 'store', 'mainData');
+            
+            const dataToSave = {
+                inventoryData: inventoryData,
+                productCatalog: productCatalog,
+                adminPassword: localStorage.getItem('adminPassword') || '123456',
+                companyName: document.getElementById('companyName').innerText
+            };
+
+            window.firebaseSetDoc(docRef, dataToSave).then(() => {
+                console.log("Data successfully synced to Firebase.");
+            }).catch(err => {
+                console.error("Error syncing data:", err);
+                showToast("同步到云端失败，请检查网络或数据库配置");
+            });
+        }
+
+        // 默认数据初始化 (包含真实的 67 条数据)
+        function initFallbackData() {
+            const initDate = '2026-04-12';
+            const defaultData = [
+                { id: 67, date: '2026-04-15', itemName: '布艺档案袋', type: '出库', quantity: 1, unit: '个', handler: '曹兴焱', remarks: '-' },
+                { id: 66, date: '2026-04-13', itemName: '大档案盒', type: '出库', quantity: 1, unit: '个', handler: '唐之超', remarks: '-' },
+                { id: 65, date: '2026-04-13', itemName: '维达擦手纸', type: '出库', quantity: 1, unit: '包', handler: '曹兴焱', remarks: '-' },
+                { id: 64, date: '2026-04-13', itemName: 'A4纸', type: '出库', quantity: 2, unit: '包', handler: '曹兴焱', remarks: '-' },
+                { id: 63, date: initDate, itemName: 'U盘', type: '入库', quantity: 3, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 62, date: initDate, itemName: '打印机数据线', type: '入库', quantity: 1, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 61, date: initDate, itemName: '高清线', type: '入库', quantity: 4, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 60, date: initDate, itemName: '电源线', type: '入库', quantity: 1, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 59, date: initDate, itemName: '扩音器', type: '入库', quantity: 1, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 58, date: initDate, itemName: '1m链条锁', type: '入库', quantity: 5, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 57, date: initDate, itemName: '方形锁', type: '入库', quantity: 1, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 56, date: initDate, itemName: '烧水壶', type: '入库', quantity: 1, unit: '套', handler: '系统初始化', remarks: '' },
+                { id: 55, date: initDate, itemName: '2m接线板', type: '入库', quantity: 2, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 54, date: initDate, itemName: '打印机', type: '入库', quantity: 2, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 53, date: initDate, itemName: 'A3纸', type: '入库', quantity: 1, unit: '包', handler: '系统初始化', remarks: '' },
+                { id: 52, date: initDate, itemName: '纸质档案盒', type: '入库', quantity: 190, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 51, date: initDate, itemName: '大档案盒', type: '入库', quantity: 23, unit: '个', handler: '系统初始化', remarks: '基础22+出库1' },
+                { id: 50, date: initDate, itemName: '碳粉（大）', type: '入库', quantity: 1, unit: '箱', handler: '系统初始化', remarks: '' },
+                { id: 49, date: initDate, itemName: '一次性纸杯', type: '入库', quantity: 11, unit: '包', handler: '系统初始化', remarks: '' },
+                { id: 48, date: initDate, itemName: '大卷纸', type: '入库', quantity: 71, unit: '卷', handler: '系统初始化', remarks: '' },
+                { id: 47, date: initDate, itemName: '重油污清洁剂', type: '入库', quantity: 5, unit: '瓶', handler: '系统初始化', remarks: '' },
+                { id: 46, date: initDate, itemName: 'N95口罩', type: '入库', quantity: 320, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 45, date: initDate, itemName: '大胶带', type: '入库', quantity: 4, unit: '卷', handler: '系统初始化', remarks: '' },
+                { id: 44, date: initDate, itemName: '小胶带', type: '入库', quantity: 3, unit: '卷', handler: '系统初始化', remarks: '' },
+                { id: 43, date: initDate, itemName: '垃圾袋', type: '入库', quantity: 90, unit: '卷', handler: '系统初始化', remarks: '' },
+                { id: 42, date: initDate, itemName: '鞋刷', type: '入库', quantity: 4, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 41, date: initDate, itemName: '袋装洗手液', type: '入库', quantity: 3, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 40, date: initDate, itemName: '鼠标垫', type: '入库', quantity: 3, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 39, date: initDate, itemName: '蚊香片', type: '入库', quantity: 1, unit: '盒', handler: '系统初始化', remarks: '' },
+                { id: 38, date: initDate, itemName: '牛皮纸档案袋', type: '入库', quantity: 23, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 37, date: initDate, itemName: '2m网线', type: '入库', quantity: 3, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 36, date: initDate, itemName: '座机', type: '入库', quantity: 2, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 35, date: initDate, itemName: '硬盒抽纸', type: '入库', quantity: 21, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 34, date: initDate, itemName: '茶杯', type: '入库', quantity: 6, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 33, date: initDate, itemName: '洗车液', type: '入库', quantity: 5, unit: '瓶', handler: '系统初始化', remarks: '' },
+                { id: 32, date: initDate, itemName: '威猛先生', type: '入库', quantity: 1, unit: '瓶', handler: '系统初始化', remarks: '' },
+                { id: 31, date: initDate, itemName: '碳粉（小）', type: '入库', quantity: 1, unit: '盒', handler: '系统初始化', remarks: '' },
+                { id: 30, date: initDate, itemName: '百洁布', type: '入库', quantity: 2, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 29, date: initDate, itemName: '四连文件框', type: '入库', quantity: 3, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 28, date: initDate, itemName: '大脸盆', type: '入库', quantity: 2, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 27, date: initDate, itemName: '小脸盆', type: '入库', quantity: 1, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 26, date: initDate, itemName: '垫子', type: '入库', quantity: 3, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 25, date: initDate, itemName: '键盘', type: '入库', quantity: 4, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 24, date: initDate, itemName: '交换机', type: '入库', quantity: 1, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 23, date: initDate, itemName: '回形针', type: '入库', quantity: 7, unit: '盒', handler: '系统初始化', remarks: '' },
+                { id: 22, date: initDate, itemName: '订书针', type: '入库', quantity: 168, unit: '盒', handler: '系统初始化', remarks: '' },
+                { id: 21, date: initDate, itemName: '圆形笔筒', type: '入库', quantity: 8, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 20, date: initDate, itemName: '网格拉链袋', type: '入库', quantity: 68, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 19, date: initDate, itemName: '信封', type: '入库', quantity: 60, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 18, date: initDate, itemName: '发票夹', type: '入库', quantity: 3, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 17, date: initDate, itemName: '档案盒(小)', type: '入库', quantity: 1, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 16, date: initDate, itemName: '文件夹', type: '入库', quantity: 33, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 15, date: initDate, itemName: '雨伞', type: '入库', quantity: 15, unit: '把', handler: '系统初始化', remarks: '' },
+                { id: 14, date: initDate, itemName: '雨衣', type: '入库', quantity: 21, unit: '件', handler: '系统初始化', remarks: '' },
+                { id: 13, date: initDate, itemName: '尺子', type: '入库', quantity: 1, unit: '把', handler: '系统初始化', remarks: '' },
+                { id: 12, date: initDate, itemName: '挡书板', type: '入库', quantity: 12, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 11, date: initDate, itemName: '小记事本', type: '入库', quantity: 2, unit: '本', handler: '系统初始化', remarks: '' },
+                { id: 10, date: initDate, itemName: '订书机', type: '入库', quantity: 2, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 9, date: initDate, itemName: '快干印泥', type: '入库', quantity: 1, unit: '个', handler: '系统初始化', remarks: '' },
+                { id: 8, date: initDate, itemName: '便利贴', type: '入库', quantity: 7, unit: '本', handler: '系统初始化', remarks: '' },
+                { id: 7, date: initDate, itemName: '胶棒', type: '入库', quantity: 8, unit: '支', handler: '系统初始化', remarks: '' },
+                { id: 6, date: initDate, itemName: '液体胶', type: '入库', quantity: 78, unit: '支', handler: '系统初始化', remarks: '' },
+                { id: 5, date: initDate, itemName: '光敏印油', type: '入库', quantity: 20, unit: '瓶', handler: '系统初始化', remarks: '' },
+                { id: 4, date: initDate, itemName: '签字笔/中性笔', type: '入库', quantity: 45, unit: '支', handler: '系统初始化', remarks: '' },
+                { id: 3, date: initDate, itemName: '布艺档案袋', type: '入库', quantity: 1, unit: '个', handler: '系统初始化', remarks: '后续出库' },
+                { id: 2, date: initDate, itemName: '维达擦手纸', type: '入库', quantity: 1, unit: '包', handler: '系统初始化', remarks: '后续出库' },
+                { id: 1, date: initDate, itemName: 'A4纸', type: '入库', quantity: 2, unit: '包', handler: '系统初始化', remarks: '后续出库' }
+            ];
+            
+            // 尝试读取本地旧版本缓存做兼容
+            const localData = localStorage.getItem('inventoryData_v9') || localStorage.getItem('inventoryData_v8');
+            const localCatalog = localStorage.getItem('productCatalog_v9') || localStorage.getItem('productCatalog_v8');
+            
+            if (localData) {
+                try {
+                    inventoryData = JSON.parse(localData);
+                    productCatalog = localCatalog ? JSON.parse(localCatalog) : {};
+                    if (!localCatalog) {
+                        inventoryData.forEach(item => {
+                            if (!productCatalog[item.itemName]) {
+                                productCatalog[item.itemName] = { unit: item.unit, image: null, stockOffset: 0 };
+                            }
+                        });
+                    }
+                } catch (e) {
+                    inventoryData = [...defaultData];
+                    productCatalog = {};
+                    inventoryData.forEach(item => {
+                        productCatalog[item.itemName] = { unit: item.unit, image: null, stockOffset: 0 };
+                    });
+                }
+            } else if (window.__EMBEDDED_DATA__) {
+                inventoryData = window.__EMBEDDED_DATA__.inventoryData;
+                productCatalog = window.__EMBEDDED_DATA__.productCatalog;
+            } else {
+                inventoryData = [...defaultData];
+                productCatalog = {};
+                inventoryData.forEach(item => {
+                    productCatalog[item.itemName] = { unit: item.unit, image: null, stockOffset: 0 };
+                });
+            }
+            updateTable();
+            renderInventory();
+        }
+
+        // 各种原有函数保持不变 ...
         function openAuthModal(mode) {
             authMode = mode;
             const modal = document.getElementById('authModal');
@@ -576,7 +805,7 @@
 
         async function handleAuthSubmit(event) {
             event.preventDefault();
-            const savedPwd = localStorage.getItem('adminPassword');
+            const savedPwd = localStorage.getItem('adminPassword') || '123456';
             const mainPwd = document.getElementById('authMainPwd').value;
 
             if (authMode === 'login') {
@@ -598,6 +827,7 @@
                     return;
                 }
                 localStorage.setItem('adminPassword', mainPwd);
+                saveDataToFirebase(); // 将新密码同步到云端
                 closeAuthModal();
                 showToast('密码修改成功！下次请使用新密码。');
             }
@@ -610,6 +840,7 @@
 
         function setAdminStatus(status) {
             isAdmin = status;
+            const cloudIndicator = document.getElementById('cloudSyncIndicator');
             
             if (isAdmin) {
                 document.body.classList.add('is-admin');
@@ -618,6 +849,7 @@
                 document.getElementById('navChangePwdBtn').classList.remove('hidden');
                 document.getElementById('companyName').setAttribute('contenteditable', 'true');
                 document.getElementById('companyName').classList.add('border-slate-300', 'border-dashed');
+                if (cloudIndicator && isDbReady) cloudIndicator.classList.remove('hidden');
             } else {
                 document.body.classList.remove('is-admin');
                 document.getElementById('navLoginBtn').classList.remove('hidden');
@@ -625,6 +857,7 @@
                 document.getElementById('navChangePwdBtn').classList.add('hidden');
                 document.getElementById('companyName').setAttribute('contenteditable', 'false');
                 document.getElementById('companyName').classList.remove('border-slate-300', 'border-dashed');
+                if (cloudIndicator) cloudIndicator.classList.add('hidden');
                 
                 selectedIds.clear();
                 updateBatchDeleteBtn();
@@ -640,130 +873,6 @@
                 return;
             }
             document.getElementById('logoUploadInput').click();
-        }
-
-        /* ================= 核心业务逻辑 ================= */
-        function getTodayString() {
-            return new Date().toISOString().split('T')[0];
-        }
-        
-        const initDate = '2026-04-12';
-        
-        const defaultData = [
-            { id: 67, date: '2026-04-15', itemName: '布艺档案袋', type: '出库', quantity: 1, unit: '个', handler: '曹兴焱', remarks: '-' },
-            { id: 66, date: '2026-04-13', itemName: '大档案盒', type: '出库', quantity: 1, unit: '个', handler: '唐之超', remarks: '-' },
-            { id: 65, date: '2026-04-13', itemName: '维达擦手纸', type: '出库', quantity: 1, unit: '包', handler: '曹兴焱', remarks: '-' },
-            { id: 64, date: '2026-04-13', itemName: 'A4纸', type: '出库', quantity: 2, unit: '包', handler: '曹兴焱', remarks: '-' },
-            { id: 63, date: initDate, itemName: 'U盘', type: '入库', quantity: 3, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 62, date: initDate, itemName: '打印机数据线', type: '入库', quantity: 1, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 61, date: initDate, itemName: '高清线', type: '入库', quantity: 4, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 60, date: initDate, itemName: '电源线', type: '入库', quantity: 1, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 59, date: initDate, itemName: '扩音器', type: '入库', quantity: 1, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 58, date: initDate, itemName: '1m链条锁', type: '入库', quantity: 5, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 57, date: initDate, itemName: '方形锁', type: '入库', quantity: 1, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 56, date: initDate, itemName: '烧水壶', type: '入库', quantity: 1, unit: '套', handler: '系统初始化', remarks: '' },
-            { id: 55, date: initDate, itemName: '2m接线板', type: '入库', quantity: 2, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 54, date: initDate, itemName: '打印机', type: '入库', quantity: 2, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 53, date: initDate, itemName: 'A3纸', type: '入库', quantity: 1, unit: '包', handler: '系统初始化', remarks: '' },
-            { id: 52, date: initDate, itemName: '纸质档案盒', type: '入库', quantity: 190, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 51, date: initDate, itemName: '大档案盒', type: '入库', quantity: 23, unit: '个', handler: '系统初始化', remarks: '基础22+出库1' },
-            { id: 50, date: initDate, itemName: '碳粉（大）', type: '入库', quantity: 1, unit: '箱', handler: '系统初始化', remarks: '' },
-            { id: 49, date: initDate, itemName: '一次性纸杯', type: '入库', quantity: 11, unit: '包', handler: '系统初始化', remarks: '' },
-            { id: 48, date: initDate, itemName: '大卷纸', type: '入库', quantity: 71, unit: '卷', handler: '系统初始化', remarks: '' },
-            { id: 47, date: initDate, itemName: '重油污清洁剂', type: '入库', quantity: 5, unit: '瓶', handler: '系统初始化', remarks: '' },
-            { id: 46, date: initDate, itemName: 'N95口罩', type: '入库', quantity: 320, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 45, date: initDate, itemName: '大胶带', type: '入库', quantity: 4, unit: '卷', handler: '系统初始化', remarks: '' },
-            { id: 44, date: initDate, itemName: '小胶带', type: '入库', quantity: 3, unit: '卷', handler: '系统初始化', remarks: '' },
-            { id: 43, date: initDate, itemName: '垃圾袋', type: '入库', quantity: 90, unit: '卷', handler: '系统初始化', remarks: '' },
-            { id: 42, date: initDate, itemName: '鞋刷', type: '入库', quantity: 4, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 41, date: initDate, itemName: '袋装洗手液', type: '入库', quantity: 3, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 40, date: initDate, itemName: '鼠标垫', type: '入库', quantity: 3, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 39, date: initDate, itemName: '蚊香片', type: '入库', quantity: 1, unit: '盒', handler: '系统初始化', remarks: '' },
-            { id: 38, date: initDate, itemName: '牛皮纸档案袋', type: '入库', quantity: 23, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 37, date: initDate, itemName: '2m网线', type: '入库', quantity: 3, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 36, date: initDate, itemName: '座机', type: '入库', quantity: 2, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 35, date: initDate, itemName: '硬盒抽纸', type: '入库', quantity: 21, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 34, date: initDate, itemName: '茶杯', type: '入库', quantity: 6, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 33, date: initDate, itemName: '洗车液', type: '入库', quantity: 5, unit: '瓶', handler: '系统初始化', remarks: '' },
-            { id: 32, date: initDate, itemName: '威猛先生', type: '入库', quantity: 1, unit: '瓶', handler: '系统初始化', remarks: '' },
-            { id: 31, date: initDate, itemName: '碳粉（小）', type: '入库', quantity: 1, unit: '盒', handler: '系统初始化', remarks: '' },
-            { id: 30, date: initDate, itemName: '百洁布', type: '入库', quantity: 2, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 29, date: initDate, itemName: '四连文件框', type: '入库', quantity: 3, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 28, date: initDate, itemName: '大脸盆', type: '入库', quantity: 2, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 27, date: initDate, itemName: '小脸盆', type: '入库', quantity: 1, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 26, date: initDate, itemName: '垫子', type: '入库', quantity: 3, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 25, date: initDate, itemName: '键盘', type: '入库', quantity: 4, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 24, date: initDate, itemName: '交换机', type: '入库', quantity: 1, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 23, date: initDate, itemName: '回形针', type: '入库', quantity: 7, unit: '盒', handler: '系统初始化', remarks: '' },
-            { id: 22, date: initDate, itemName: '订书针', type: '入库', quantity: 168, unit: '盒', handler: '系统初始化', remarks: '' },
-            { id: 21, date: initDate, itemName: '圆形笔筒', type: '入库', quantity: 8, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 20, date: initDate, itemName: '网格拉链袋', type: '入库', quantity: 68, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 19, date: initDate, itemName: '信封', type: '入库', quantity: 60, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 18, date: initDate, itemName: '发票夹', type: '入库', quantity: 3, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 17, date: initDate, itemName: '档案盒(小)', type: '入库', quantity: 1, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 16, date: initDate, itemName: '文件夹', type: '入库', quantity: 33, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 15, date: initDate, itemName: '雨伞', type: '入库', quantity: 15, unit: '把', handler: '系统初始化', remarks: '' },
-            { id: 14, date: initDate, itemName: '雨衣', type: '入库', quantity: 21, unit: '件', handler: '系统初始化', remarks: '' },
-            { id: 13, date: initDate, itemName: '尺子', type: '入库', quantity: 1, unit: '把', handler: '系统初始化', remarks: '' },
-            { id: 12, date: initDate, itemName: '挡书板', type: '入库', quantity: 12, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 11, date: initDate, itemName: '小记事本', type: '入库', quantity: 2, unit: '本', handler: '系统初始化', remarks: '' },
-            { id: 10, date: initDate, itemName: '订书机', type: '入库', quantity: 2, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 9, date: initDate, itemName: '快干印泥', type: '入库', quantity: 1, unit: '个', handler: '系统初始化', remarks: '' },
-            { id: 8, date: initDate, itemName: '便利贴', type: '入库', quantity: 7, unit: '本', handler: '系统初始化', remarks: '' },
-            { id: 7, date: initDate, itemName: '胶棒', type: '入库', quantity: 8, unit: '支', handler: '系统初始化', remarks: '' },
-            { id: 6, date: initDate, itemName: '液体胶', type: '入库', quantity: 78, unit: '支', handler: '系统初始化', remarks: '' },
-            { id: 5, date: initDate, itemName: '光敏印油', type: '入库', quantity: 20, unit: '瓶', handler: '系统初始化', remarks: '' },
-            { id: 4, date: initDate, itemName: '签字笔/中性笔', type: '入库', quantity: 45, unit: '支', handler: '系统初始化', remarks: '' },
-            { id: 3, date: initDate, itemName: '布艺档案袋', type: '入库', quantity: 1, unit: '个', handler: '系统初始化', remarks: '后续出库' },
-            { id: 2, date: initDate, itemName: '维达擦手纸', type: '入库', quantity: 1, unit: '包', handler: '系统初始化', remarks: '后续出库' },
-            { id: 1, date: initDate, itemName: 'A4纸', type: '入库', quantity: 2, unit: '包', handler: '系统初始化', remarks: '后续出库' }
-        ]; 
-        
-        let inventoryData = [];
-        let productCatalog = {};
-        
-        // 缓存重置为 v9
-        const localData = localStorage.getItem('inventoryData_v9');
-        const localCatalog = localStorage.getItem('productCatalog_v9');
-        if (localData) {
-            try {
-                inventoryData = JSON.parse(localData);
-                productCatalog = localCatalog ? JSON.parse(localCatalog) : {};
-                if (!localCatalog) initCatalog();
-            } catch (e) {
-                inventoryData = [...defaultData];
-                productCatalog = {};
-                saveDataToStorage();
-            }
-        } else if (window.__EMBEDDED_DATA__) {
-            inventoryData = window.__EMBEDDED_DATA__.inventoryData;
-            productCatalog = window.__EMBEDDED_DATA__.productCatalog;
-            localStorage.setItem('inventoryData_v9', JSON.stringify(inventoryData));
-            localStorage.setItem('productCatalog_v9', JSON.stringify(productCatalog));
-        } else {
-            inventoryData = [...defaultData];
-            productCatalog = {};
-            initCatalog();
-        }
-
-        function saveDataToStorage() {
-            try {
-                localStorage.setItem('inventoryData_v9', JSON.stringify(inventoryData));
-                localStorage.setItem('productCatalog_v9', JSON.stringify(productCatalog));
-            } catch (e) {
-                showCustomDialog({ message: '数据保存失败，请检查浏览器存储空间。' });
-            }
-        }
-
-        function initCatalog() {
-            let catalogChanged = false;
-            inventoryData.forEach(item => {
-                if (!productCatalog[item.itemName]) {
-                    productCatalog[item.itemName] = { unit: item.unit, image: null, stockOffset: 0 };
-                    catalogChanged = true;
-                }
-            });
-            if (catalogChanged) saveDataToStorage();
         }
 
         function toggleItemDropdown() {
@@ -835,23 +944,7 @@
         let totalPages = 0;
         let inventorySearchKeyword = '';
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // 移除了干扰 Logo 加载的 LocalStorage 读取
-            // Logo 会严格拉取 Github 的 images/Logo.svg
-            
-            const savedName = localStorage.getItem('companyName');
-            if (savedName) document.getElementById('companyName').innerText = savedName;
-
-            document.getElementById('formDate').value = getTodayString();
-            
-            initCatalog(); 
-            setAdminStatus(false); 
-            
-            document.getElementById('searchInput').addEventListener('input', handleSearch);
-            switchTab('inventory');
-        });
-
-        // 渲染明细表格（彻底重构为原生卡片级多层级网格布局）
+        // 渲染明细表格（极稳健的 Flexbox 分层布局）
         function renderTable(data) {
             const tbody = document.getElementById('tableBody');
             const emptyState = document.getElementById('emptyState');
@@ -872,33 +965,33 @@
 
             data.forEach((item, index) => {
                 const tr = document.createElement('tr');
-                tr.className = `hover:bg-slate-50 transition-colors ${isAdmin ? 'has-checkbox' : ''}`;
+                tr.className = `hover:bg-slate-50 transition-colors`;
                 const typeStyle = item.type === '入库' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800';
                 const isSelected = selectedIds.has(item.id);
                 
                 let html = '';
                 if (isAdmin) {
                     html += `
-                    <td class="td-checkbox px-4 py-4 whitespace-nowrap">
-                        <input type="checkbox" value="${item.id}" onchange="toggleSelectRow(event, ${item.id})" ${isSelected ? 'checked' : ''} class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer w-4 h-4 sm:w-5 sm:h-5">
+                    <td class="td-checkbox">
+                        <input type="checkbox" value="${item.id}" onchange="toggleSelectRow(event, ${item.id})" ${isSelected ? 'checked' : ''} class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer w-5 h-5">
                     </td>`;
                 }
                 
                 html += `
-                    <td class="td-index px-6 py-4 text-sm text-slate-500">${index + 1}</td>
-                    <td class="td-name px-6 py-4 text-sm font-bold text-slate-900">${item.itemName}</td>
-                    <td class="td-type px-6 py-4 text-sm"><span class="px-2.5 py-1 inline-flex text-xs leading-5 font-bold rounded-lg shadow-sm ${typeStyle}">${item.type}</span></td>
-                    <td data-unit="${item.unit}" class="td-qty px-6 py-4 text-sm text-slate-900 font-bold">${item.quantity}</td>
-                    <td class="td-unit px-6 py-4 text-sm text-slate-500">${item.unit}</td>
-                    <td class="td-date px-6 py-4 text-sm text-slate-900">${item.date}</td>
-                    <td class="td-handler px-6 py-4 text-sm text-slate-700">${item.handler}</td>
-                    <td class="td-remarks px-6 py-4 text-sm text-slate-500"><span class="truncate max-w-[150px] sm:max-w-xs">${item.remarks || '-'}</span></td>
+                    <td class="td-index">${index + 1}</td>
+                    <td class="td-name">${item.itemName}</td>
+                    <td class="td-type"><span class="px-2.5 py-1 inline-flex text-xs leading-5 font-bold rounded-lg shadow-sm ${typeStyle}">${item.type}</span></td>
+                    <td data-unit="${item.unit}" class="td-qty">${item.quantity}</td>
+                    <td class="td-unit">${item.unit}</td>
+                    <td class="td-date">${item.date}</td>
+                    <td class="td-handler">${item.handler}</td>
+                    <td class="td-remarks"><span class="truncate max-w-[150px] sm:max-w-xs">${item.remarks || '-'}</span></td>
                 `;
 
                 if (isAdmin) {
                     html += `
-                    <td class="action-cell px-6 py-4 text-sm text-slate-500">
-                        <button onclick="deleteSingle(${item.id})" class="text-rose-500 hover:text-white hover:bg-rose-500 px-4 py-2 rounded-xl font-bold focus:outline-none transition-colors border border-rose-200 hover:border-transparent text-xs sm:text-sm shadow-sm">删除此明细</button>
+                    <td class="action-cell">
+                        <button onclick="deleteSingle(${item.id})" class="text-rose-500 hover:text-white hover:bg-rose-500 px-4 py-2 rounded-xl font-bold focus:outline-none transition-colors border border-rose-200 hover:border-transparent text-sm shadow-sm">删除此明细</button>
                     </td>`;
                 }
                 
@@ -952,7 +1045,7 @@
         function performDelete(idsToDelete) {
             inventoryData = inventoryData.filter(item => !idsToDelete.has(item.id));
             idsToDelete.forEach(id => selectedIds.delete(id));
-            saveDataToStorage();
+            saveDataToFirebase();
             updateTable(); 
             if (!document.getElementById('inventoryView').classList.contains('hidden')) renderInventory();
             updateBatchDeleteBtn(); 
@@ -1017,7 +1110,6 @@
             renderInventory();
         }
 
-        // 渲染库存表格
         function renderInventory() {
             const tbody = document.getElementById('inventoryBody');
             let paginationContainer = document.getElementById('inventoryPagination');
@@ -1209,7 +1301,7 @@
             if (confirmed) {
                 if (productCatalog[itemName]) delete productCatalog[itemName];
                 inventoryData = inventoryData.filter(item => item.itemName !== itemName);
-                saveDataToStorage(); renderInventory(); 
+                saveDataToFirebase(); renderInventory(); 
                 showToast('物品删除成功！');
             }
         }
@@ -1223,7 +1315,7 @@
             if (difference === 0) return; 
             if (!productCatalog[itemName]) productCatalog[itemName] = { unit: '', image: null, stockOffset: 0 };
             productCatalog[itemName].stockOffset = (productCatalog[itemName].stockOffset || 0) + difference;
-            saveDataToStorage(); renderInventory(); showToast(`【${itemName}】库存已直接更新为 ${newStock}！`);
+            saveDataToFirebase(); renderInventory(); showToast(`【${itemName}】库存已直接更新为 ${newStock}！`);
         }
 
         async function editItemName(oldName) {
@@ -1239,7 +1331,7 @@
             }
             productCatalog = newCatalog;
             inventoryData.forEach(item => { if (item.itemName === oldName) item.itemName = trimmedNewName; });
-            saveDataToStorage(); updateTable(); renderInventory(); showToast(`已重命名为【${trimmedNewName}】！`);
+            saveDataToFirebase(); updateTable(); renderInventory(); showToast(`已重命名为【${trimmedNewName}】！`);
         }
 
         async function editUnit(itemName, currentUnit) {
@@ -1249,7 +1341,7 @@
             if (trimmedNewUnit === currentUnit) return;
             if (productCatalog[itemName]) productCatalog[itemName].unit = trimmedNewUnit;
             inventoryData.forEach(item => { if (item.itemName === itemName) item.unit = trimmedNewUnit; });
-            saveDataToStorage(); updateTable(); renderInventory(); showToast(`【${itemName}】单位已修改为【${trimmedNewUnit}】！`);
+            saveDataToFirebase(); updateTable(); renderInventory(); showToast(`【${itemName}】单位已修改为【${trimmedNewUnit}】！`);
         }
 
         function triggerImageUpload(itemName) {
@@ -1281,7 +1373,7 @@
             if (!file) return;
             compressImage(file, function(base64) {
                 productCatalog[currentUploadItemName].image = base64;
-                saveDataToStorage(); renderInventory(); showToast(currentUploadItemName + ' 的照片已更新！');
+                saveDataToFirebase(); renderInventory(); showToast(currentUploadItemName + ' 的照片已更新！');
                 event.target.value = '';
             });
         }
@@ -1334,7 +1426,7 @@
             const stock = parseInt(document.getElementById('catStock').value, 10);
             if (productCatalog[itemName]) { await showCustomDialog({ message: `操作失败！【${itemName}】已经存在于库存中。` }); return; }
             productCatalog[itemName] = { unit: unit, image: tempCatImageBase64, stockOffset: stock };
-            saveDataToStorage(); renderInventory(); 
+            saveDataToFirebase(); renderInventory(); 
             closeCategoryModal(); showToast(`新品类【${itemName}】已建档入库！`);
         }
 
@@ -1350,11 +1442,12 @@
                     if (width > MAX_WIDTH) { height = Math.round((height * MAX_WIDTH) / width); width = MAX_WIDTH; }
                     canvas.width = width; canvas.height = height;
                     const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
-                    // 上传的存入临时缓存，供无github环境使用
                     const base64 = canvas.toDataURL('image/png'); 
                     const logoEl = document.getElementById('companyLogo');
-                    logoEl.src = base64; 
-                    showToast('Logo 临时预览更新成功！');
+                    logoEl.src = base64;
+                    // 保存到云端以实现全端同步
+                    saveDataToFirebase();
+                    showToast('Logo 上传并同步成功！');
                 };
                 img.src = e.target.result;
             };
@@ -1362,9 +1455,8 @@
         }
 
         function saveCompanyName() {
-            const name = document.getElementById('companyName').innerText;
-            localStorage.setItem('companyName', name);
-            showToast('系统名称已保存！');
+            saveDataToFirebase();
+            showToast('系统名称已同步！');
         }
 
         const modal = document.getElementById('recordModal');
@@ -1399,14 +1491,14 @@
             };
             inventoryData.unshift(newRecord);
             if (!productCatalog[newRecord.itemName]) productCatalog[newRecord.itemName] = { unit: newRecord.unit, image: null, stockOffset: 0 };
-            saveDataToStorage(); document.getElementById('searchInput').value = ''; currentSearchKeyword = ''; updateTable();
+            saveDataToFirebase(); document.getElementById('searchInput').value = ''; currentSearchKeyword = ''; updateTable();
             if (!document.getElementById('inventoryView').classList.contains('hidden')) renderInventory();
             if (keepOpen) {
                 showToast(`已保存！请继续录入下一个。`);
                 document.getElementById('formItemName').value = ''; document.getElementById('formQuantity').value = ''; document.getElementById('formRemarks').value = '';
                 const unitInput = document.getElementById('formUnit'); unitInput.value = ''; unitInput.readOnly = false; unitInput.classList.remove('bg-slate-50', 'text-slate-400');
                 document.getElementById('formItemName').focus();
-            } else { closeModal(); showToast('记录添加成功！'); }
+            } else { closeModal(); showToast('记录同步成功！'); }
         }
 
         async function exportToExcel() {
@@ -1427,8 +1519,6 @@
             const clonedDoc = document.cloneNode(true);
             const dataScript = clonedDoc.getElementById('embedded-data');
             if (dataScript) dataScript.textContent = `window.__EMBEDDED_DATA__ = { inventoryData: ${JSON.stringify(inventoryData)}, productCatalog: ${JSON.stringify(productCatalog)} };`;
-            const nameSpan = clonedDoc.getElementById('companyName');
-            if (nameSpan) nameSpan.innerText = document.getElementById('companyName').innerText;
             const htmlContent = '<!DOCTYPE html>\n<html lang="zh-CN">\n' + clonedDoc.documentElement.innerHTML + '\n</html>';
             const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
             const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url;
