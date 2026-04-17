@@ -176,7 +176,7 @@
                     </button>
                     <button id="cloudSyncIndicator" class="hidden flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-emerald-50 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm border border-emerald-100 text-emerald-600">
                         <svg class="w-4 h-4 sm:mr-1.5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
-                        <span class="hidden sm:inline">已开启云同步</span>
+                        <span class="hidden sm:inline">云同步已开启</span>
                     </button>
                     <button id="navLogoutBtn" onclick="logoutAdmin()" class="hidden flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-red-50 hover:bg-red-100 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm border border-red-100 text-red-600">
                         <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
@@ -494,7 +494,7 @@
                 const confirmBtn = document.getElementById('dialogConfirmBtn');
 
                 titleEl.innerText = title;
-                messageEl.innerText = message;
+                messageEl.innerHTML = message.replace(/\n/g, '<br>');
                 inputEl.value = defaultValue;
 
                 inputEl.classList.add('hidden');
@@ -544,34 +544,28 @@
 
         /* ================= 权限与 Firebase 云端同步逻辑 ================= */
         let isAdmin = false; 
-        const APP_ID = 'manerger-systm'; // 全局统一应用ID
+        const APP_ID = 'manerger-systm'; 
         let isDbReady = false;
 
-        // 全局数据状态
         let inventoryData = [];
         let productCatalog = {};
         
-        // --- 核心：接入 Firebase Firestore 实现多端同步 ---
         document.addEventListener('DOMContentLoaded', () => {
             const auth = window.firebaseAuth;
             const signInAnonymously = window.firebaseSignIn;
             
-            // 匿名登录以获取数据库权限
             signInAnonymously(auth).then(() => {
                 const db = window.firebaseDb;
                 const docRef = window.firebaseDoc(db, 'artifacts', APP_ID, 'public', 'data', 'store', 'mainData');
                 
-                // 实时监听云端数据变化 (相当于自动同步)
                 window.firebaseOnSnapshot(docRef, (snapshot) => {
                     isDbReady = true; 
                     if (snapshot.exists()) {
                         const data = snapshot.data();
                         
-                        // 1. 同步数据字典和明细
                         inventoryData = data.inventoryData || [];
                         productCatalog = data.productCatalog || {};
                         
-                        // 2. 同步设置（密码和公司名称）
                         if (data.adminPassword) {
                             localStorage.setItem('adminPassword', data.adminPassword);
                         }
@@ -579,29 +573,30 @@
                             document.getElementById('companyName').innerText = data.companyName;
                         }
 
-                        // 显示云同步成功标志
                         const cloudIndicator = document.getElementById('cloudSyncIndicator');
                         if (cloudIndicator && isAdmin) cloudIndicator.classList.remove('hidden');
 
-                        // 3. 重新渲染界面
                         updateTable();
                         if (!document.getElementById('inventoryView').classList.contains('hidden')) {
                             renderInventory();
                         }
                     } else {
-                        // 初次使用，云端没数据，执行本地初始化并推送到云端
                         initFallbackData();
                         saveDataToFirebase();
                     }
                 }, (error) => {
                     isDbReady = false; 
-                    console.warn("Firestore 数据库未就绪:", error.message);
                     
-                    // 优雅捕获 API 未启用的错误
-                    if (error.code === 'permission-denied' || String(error).includes('has not been used') || String(error).includes('disabled')) {
+                    if (String(error).includes('has not been used') || String(error).includes('disabled')) {
                         showCustomDialog({
-                            title: '⚠️ 需要创建 Firestore 数据库',
-                            message: '身份验证已成功，但云端数据库尚未初始化！\n\n【最后一步修复】\n请在浏览器打开您的 Firebase 控制台：\n进入 Firestore Database 菜单 -> 点击 "Create database" -> 务必选择 "Start in test mode (测试模式)" -> 启用。\n\n建好后刷新本页面即可开启多端自动同步！在此之前，已为您切换为【本地单机模式】。',
+                            title: '⏳ 云端服务器正在初始化',
+                            message: '恭喜！您的数据库已建好，但 Google 云端 API 需要 3-5 分钟来同步。\n\n【解决方法】\n1. 请耐心等待 3 分钟后刷新本网页。\n2. 如果仍未生效，请复制并在浏览器打开以下链接手动启用：\nhttps://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=' + firebaseConfig.projectId + '\n\n系统暂时回退为本地单机模式。',
+                            type: 'alert'
+                        });
+                    } else if (error.code === 'permission-denied') {
+                        showCustomDialog({
+                            title: '🔒 数据库权限被拒绝',
+                            message: '连接成功，但被数据库的安全规则拦截了！\n\n【修复步骤】\n1. 在 Firebase 控制台进入 Firestore Database\n2. 点击顶部的 "Rules" (规则) 标签页\n3. 将代码修改为：\nallow read, write: if request.auth != null;\n4. 点击 "Publish" (发布) 后刷新本页。',
                             type: 'alert'
                         });
                     } else {
@@ -610,7 +605,7 @@
                     initFallbackData(); 
                 });
             }).catch(err => {
-                console.warn("Firebase Auth 认证失败:", err.message);
+                console.warn("Firebase Auth Warning (可忽略):", err.message);
                 if (err.code === 'auth/configuration-not-found' || err.code === 'auth/operation-not-allowed') {
                     showCustomDialog({
                         title: '⚠️ 缺少 Firebase 配置',
@@ -628,10 +623,8 @@
             switchTab('inventory');
         });
 
-        // 保存数据到 Firebase 云端 (取代原有的 LocalStorage)
         function saveDataToFirebase() {
             if (!isDbReady) {
-                // 如果云端不可用，先保存到本地单机缓存
                 localStorage.setItem('inventoryData_v9', JSON.stringify(inventoryData));
                 localStorage.setItem('productCatalog_v9', JSON.stringify(productCatalog));
                 return;
@@ -654,7 +647,6 @@
             });
         }
 
-        // 默认数据初始化 (包含真实的 67 条数据)
         function initFallbackData() {
             const initDate = '2026-04-12';
             const defaultData = [
@@ -727,7 +719,6 @@
                 { id: 1, date: initDate, itemName: 'A4纸', type: '入库', quantity: 2, unit: '包', handler: '系统初始化', remarks: '后续出库' }
             ];
             
-            // 尝试读取本地旧版本缓存做兼容
             const localData = localStorage.getItem('inventoryData_v9') || localStorage.getItem('inventoryData_v8');
             const localCatalog = localStorage.getItem('productCatalog_v9') || localStorage.getItem('productCatalog_v8');
             
@@ -763,7 +754,6 @@
             renderInventory();
         }
 
-        // 各种原有函数保持不变 ...
         function openAuthModal(mode) {
             authMode = mode;
             const modal = document.getElementById('authModal');
@@ -827,7 +817,7 @@
                     return;
                 }
                 localStorage.setItem('adminPassword', mainPwd);
-                saveDataToFirebase(); // 将新密码同步到云端
+                saveDataToFirebase(); 
                 closeAuthModal();
                 showToast('密码修改成功！下次请使用新密码。');
             }
@@ -944,7 +934,6 @@
         let totalPages = 0;
         let inventorySearchKeyword = '';
 
-        // 渲染明细表格（极稳健的 Flexbox 分层布局）
         function renderTable(data) {
             const tbody = document.getElementById('tableBody');
             const emptyState = document.getElementById('emptyState');
