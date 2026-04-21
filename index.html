@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="renderer" content="webkit">
-    <meta name="force-rendering" content="webkit">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <title>办公用品库房出入库管理</title>
 
@@ -12,18 +11,16 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", STHeiti, "Microsoft YaHei", Tahoma, Simsun, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
             -webkit-font-smoothing: antialiased;
+            background-color: #f8fafc;
+            margin: 0;
+            padding: 0;
+            color: #334155;
         }
 
-        /* 统一输入框样式 */
-        input, select, textarea {
-            -webkit-appearance: none;
-            appearance: none;
-            background-image: none;
-            outline: none;
-        }
-
+        input, select, textarea { outline: none; }
+        
         select {
             background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
             background-position: right 0.5rem center;
@@ -32,200 +29,336 @@
             padding-right: 2.5rem;
         }
 
-        /* 电脑端表格布局强化：恢复专业感，解决拥挤问题 */
+        /* 滚动条美化 */
+        * { scrollbar-width: thin; scrollbar-color: #cbd5e1 #f1f1f1; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .modal-hidden { display: none; opacity: 0; pointer-events: none; }
+        .modal-active { display: flex; opacity: 1; pointer-events: auto; }
+        body:not(.is-admin) .admin-only { display: none !important; }
+
+        /* 电脑端表格优化：干净清爽的经典样式 */
         @media (min-width: 769px) {
-            .responsive-table th, .responsive-table td {
-                padding: 1.25rem 1.5rem !important;
+            .pc-table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            .pc-table th, .pc-table td {
+                padding: 1rem 1.5rem;
+                text-align: left;
                 vertical-align: middle;
+                border-bottom: 1px solid #f1f5f9;
+                white-space: nowrap;
+            }
+            .pc-table th {
+                background-color: #f8fafc;
+                font-size: 0.75rem; /* text-xs */
+                font-weight: 600;
+                color: #64748b;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
             }
             .remarks-cell {
                 max-width: 250px;
                 overflow: hidden;
                 text-overflow: ellipsis;
-                white-space: nowrap;
             }
         }
 
-        /* 移动端适配 */
+        /* 移动端神仙级卡片排版：去除凌乱的字号，保持整洁 */
         @media (max-width: 768px) {
-            .responsive-table-wrapper { border: none !important; background: transparent !important; }
-            .responsive-table thead { display: none; }
-            .responsive-table tbody { display: flex; flex-direction: column; gap: 1rem; }
+            .responsive-table thead { display: none !important; }
+            .responsive-table, .responsive-table tbody { display: block; width: 100%; }
             
+            /* 出入库明细卡片 */
             #tableBody tr {
                 display: grid;
                 grid-template-columns: 1fr 1fr;
                 gap: 0.5rem;
-                background: white;
-                border-radius: 1rem;
-                padding: 1.25rem;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+                background: #ffffff;
+                margin-bottom: 1rem;
+                padding: 1rem;
+                border-radius: 0.75rem;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+                border: 1px solid #f1f5f9;
             }
-            #tableBody td { border: none !important; padding: 0 !important; display: flex; align-items: center; }
+            #tableBody td { display: flex; align-items: center; padding: 0.25rem 0 !important; border: none !important; }
             #tableBody td.td-index, #tableBody td.td-unit { display: none; }
-            #tableBody td.td-name { grid-column: 1; font-weight: 800; font-size: 1.1rem; }
+            #tableBody td.td-name { grid-column: 1 / 3; font-size: 1rem; font-weight: 600; color: #0f172a; border-bottom: 1px solid #f8fafc; padding-bottom: 0.5rem !important; margin-bottom: 0.25rem; }
             #tableBody td.td-type { grid-column: 2; justify-content: flex-end; }
-            #tableBody td.td-qty { grid-column: 1 / 3; font-size: 1.6rem; font-weight: 900; color: #4f46e5; padding: 0.4rem 0 !important; }
-            #tableBody td.td-qty::before { content: '变动:'; font-size: 0.8rem; color: #64748b; margin-right: 0.5rem; }
-            #tableBody td.td-date { grid-column: 1; color: #64748b; font-size: 0.8rem; border-bottom: 1px dashed #eee; padding-bottom: 0.5rem !important; }
-            #tableBody td.td-handler { grid-column: 2; justify-content: flex-end; font-weight: bold; border-bottom: 1px dashed #eee; padding-bottom: 0.5rem !important; }
-            #tableBody td.td-remarks { grid-column: 1 / 3; font-size: 0.8rem; color: #64748b; background: #f8fafc; padding: 0.5rem !important; border-radius: 0.5rem; }
-            #tableBody td.action-cell { grid-column: 1 / 3; justify-content: flex-end; margin-top: 0.5rem; }
+            #tableBody td.td-qty { grid-column: 1 / 3; font-size: 1.125rem; font-weight: 700; color: #4f46e5; }
+            #tableBody td.td-date { grid-column: 1; font-size: 0.8125rem; color: #64748b; border-bottom: 1px dashed #f1f5f9; padding-bottom: 0.5rem !important; }
+            #tableBody td.td-handler { grid-column: 2; justify-content: flex-end; font-size: 0.8125rem; color: #334155; font-weight: 500; border-bottom: 1px dashed #f1f5f9; padding-bottom: 0.5rem !important; }
+            #tableBody td.td-remarks { grid-column: 1 / 3; font-size: 0.8125rem; background: #f8fafc; padding: 0.5rem !important; border-radius: 0.5rem; color: #64748b; margin-top: 0.25rem; display: block !important; }
+            #tableBody td.action-cell { grid-column: 1 / 3; justify-content: flex-end; margin-top: 0.25rem; }
+            
+            /* 前缀标签弱化 */
+            #tableBody td.td-qty::before { content: '变动数量:'; font-size: 0.75rem; color: #94a3b8; font-weight: normal; margin-right: 0.5rem; }
+            #tableBody td.td-date::before { content: '日期:'; font-size: 0.75rem; color: #94a3b8; font-weight: normal; margin-right: 0.25rem; }
+            #tableBody td.td-handler::before { content: '经办人:'; font-size: 0.75rem; color: #94a3b8; font-weight: normal; margin-right: 0.25rem; }
+            #tableBody td.td-remarks::before { content: '备注: '; color: #94a3b8; font-weight: normal; margin-right: 0.25rem; }
 
+            /* 库存卡片 */
             #inventoryBody tr {
-                display: flex; align-items: center; background: white; padding: 1rem; border-radius: 1.25rem; position: relative;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.04); border: 1px solid #f8fafc;
+                display: flex; align-items: center; background: #ffffff; padding: 1rem; 
+                margin-bottom: 0.75rem; border-radius: 0.75rem; position: relative; 
+                box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #f1f5f9;
             }
-            #inventoryBody td.img-cell { width: 4.5rem; height: 4.5rem; flex-shrink: 0; }
-            #inventoryBody td[data-label="物品名称"] { font-weight: 800; font-size: 1.1rem; padding-left: 0.75rem !important; flex: 1; }
-            #inventoryBody td[data-label="当前库存"] { position: absolute; right: 1.25rem; top: 1.25rem; color: #4f46e5; font-weight: 900; font-size: 1.25rem; }
-            #inventoryBody td[data-label="单位"] { position: absolute; right: 1.25rem; top: 2.75rem; font-size: 0.75rem; color: #94a3b8; font-weight: bold; }
-            #inventoryBody td.action-cell { width: 100%; justify-content: flex-end; border-top: 1px dashed #f1f5f9; margin-top: 1rem; padding-top: 0.75rem !important; }
+            #inventoryBody td.img-cell { width: 3.5rem; height: 3.5rem; flex-shrink: 0; padding: 0 !important; border: none !important; }
+            #inventoryBody td.td-name { font-weight: 600; font-size: 1rem; padding-left: 1rem !important; flex: 1; border: none !important; color: #0f172a;}
+            #inventoryBody td.td-stock { position: absolute; right: 1rem; top: 1rem; font-weight: 700; color: #4f46e5; font-size: 1.125rem; border: none !important; }
+            #inventoryBody td.td-unit { position: absolute; right: 1rem; top: 2.5rem; font-size: 0.75rem; color: #64748b; border: none !important; }
+            #inventoryBody td.action-cell { width: 100%; border-top: 1px dashed #f1f5f9; margin-top: 0.75rem; padding-top: 0.75rem !important; justify-content: flex-end; display: flex; border-bottom: none !important; }
         }
-        
-        .modal-hidden { display: none; opacity: 0; pointer-events: none; }
-        .modal-active { display: flex; opacity: 1; pointer-events: auto; }
-        
-        /* 加载状态动画 */
-        .sync-pulse { animation: syncPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        @keyframes syncPulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen relative">
+<body class="min-h-screen">
 
-    <div id="topProgressBar" class="fixed top-0 left-0 h-[3px] bg-indigo-600 z-[100] transition-all duration-500 w-0 opacity-0 shadow-sm"></div>
+    <!-- 顶部进度条 -->
+    <div id="topProgressBar" class="fixed top-0 left-0 h-[2px] bg-indigo-500 z-[100] transition-all duration-500 w-0 opacity-0"></div>
 
-    <nav class="bg-white/80 backdrop-blur-xl border-b border-slate-200 sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16 sm:h-20">
-                <div class="flex items-center flex-1">
-                    <input type="file" id="logoUploadInput" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
-                    <img id="companyLogo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdib3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjMGYxNzJhIj48cGF0aCBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMiIgZD0iTTE5IDIxVjVhMiAyIDAgMDAtMi0ySDdhMiAyIDAgMDAtMiAydjE2bTE0IDBoMm0tMiAwaC01bS05IDBIM20yIDBoNU05IDdoMW0tMSA0aDFtNC00aDFtLTEgNGgxbS01IDEwdi01YTEgMSAwIDAxMS0xaDJhMSAxIDAgMDExIDF2NW0tNCAwaDQiLz48L3N2Zz4=" alt="Logo" onclick="triggerLogoUpload()" class="h-10 w-10 sm:h-12 sm:w-12 mr-3 rounded-xl bg-slate-50 cursor-pointer border border-slate-100 p-1 shadow-sm hover:scale-105 transition-transform">
-                    <span id="companyName" class="font-extrabold text-[15px] sm:text-2xl text-slate-900 line-clamp-1" contenteditable="false" onblur="saveCompanyName()">港坤公司办公用品管理系统</span>
+    <!-- 固定顶部导航栏 -->
+    <nav class="fixed top-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-md border-b border-slate-200 z-50 shadow-sm px-4 sm:px-6">
+        <div class="max-w-7xl mx-auto h-full flex items-center justify-between">
+            <div class="flex items-center flex-1 overflow-hidden">
+                <input type="file" id="logoUploadInput" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
+                <img id="companyLogo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdib3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjMGYxNzJhIj48cGF0aCBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMiIgZD0iTTE5IDIxVjVhMiAyIDAgMDAtMi0ySDdhMiAyIDAgMDAtMiAydjE2bTE0IDBoMm0tMiAwaC01bS05IDBIM20yIDBoNU05IDdoMW0tMSA0aDFtNC00aDFtLTEgNGgxbS01IDEwdi01YTEgMSAwIDAxMS0xaDJhMSAxIDAgMDExIDF2NW0tNCAwaDQiLz48L3N2Zz4=" 
+                     alt="Logo" onclick="triggerLogoUpload()" class="h-9 w-9 sm:h-10 sm:w-10 mr-3 rounded-lg bg-slate-50 cursor-pointer border border-slate-100 p-1 shrink-0 transition-opacity hover:opacity-80">
+                <span id="companyName" class="font-bold text-lg sm:text-xl text-slate-800 truncate" contenteditable="false" onblur="saveCompanyName()">港坤公司办公用品管理系统</span>
+            </div>
+            
+            <div class="flex items-center gap-2 shrink-0">
+                <button id="navLoginBtn" onclick="openAuthModal('login')" class="px-4 py-1.5 bg-slate-800 text-white rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors shadow-sm">管理登录</button>
+                <button id="navChangePwdBtn" onclick="openAuthModal('changePwd')" class="hidden px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50">修改密码</button>
+                <div id="syncStatus" class="hidden sm:flex items-center px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-xs font-medium border border-emerald-100">
+                    <span class="relative flex h-1.5 w-1.5 mr-1.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span></span>
+                    已连接云端
                 </div>
-                
-                <div class="flex items-center gap-2 flex-shrink-0">
-                    <button id="navLoginBtn" onclick="openAuthModal('login')" class="px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md hover:bg-slate-800 transition-colors">管理登录</button>
-                    <button id="navChangePwdBtn" onclick="openAuthModal('changePwd')" class="hidden px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs sm:text-sm font-bold hover:bg-slate-50 transition-colors">密码</button>
-                    <div id="syncStatus" class="hidden items-center px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl text-xs sm:text-sm font-black border border-emerald-100">
-                        <span class="flex h-2 w-2 mr-2"><span class="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span></span>
-                        云同步
-                    </div>
-                    <button id="navLogoutBtn" onclick="logoutAdmin()" class="hidden px-3 py-1.5 bg-red-50 text-red-600 border border-red-100 rounded-xl text-xs sm:text-sm font-bold hover:bg-red-100 transition-colors">退出</button>
-                </div>
+                <button id="navLogoutBtn" onclick="logoutAdmin()" class="hidden px-3 py-1.5 bg-red-50 text-red-600 border border-red-100 rounded-lg text-sm font-medium hover:bg-red-100">退出</button>
             </div>
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
-        <div class="flex border-b border-slate-200 mb-6 bg-white sm:bg-transparent sticky top-[4rem] sm:relative z-30">
-            <button onclick="switchTab('inventory')" id="tab-inventory" class="flex-1 sm:flex-none py-3 px-8 border-b-2 border-indigo-600 text-indigo-600 font-extrabold text-sm sm:text-base">当前库存展示</button>
-            <button onclick="switchTab('transactions')" id="tab-transactions" class="flex-1 sm:flex-none py-3 px-8 border-b-2 border-transparent text-slate-400 font-bold text-sm sm:text-base">出入库明细</button>
+    <!-- 主内容区 -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 pt-20 pb-12">
+        
+        <!-- 导航页签 -->
+        <div class="flex border-b border-slate-200 mb-6 bg-slate-50/80 backdrop-blur z-30">
+            <button onclick="switchTab('inventory')" id="tab-inventory" class="flex-1 sm:flex-none py-3 px-6 sm:px-8 border-b-2 border-indigo-600 text-indigo-600 font-semibold text-sm sm:text-base transition-colors">当前库存展示</button>
+            <button onclick="switchTab('transactions')" id="tab-transactions" class="flex-1 sm:flex-none py-3 px-6 sm:px-8 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-medium text-sm sm:text-base transition-colors">出入库明细</button>
         </div>
 
-        <!-- 库存视图 -->
+        <!-- 视图1: 库存展示 -->
         <div id="inventoryView">
-            <div class="flex flex-col sm:flex-row justify-between mb-5 gap-3">
+            <div class="flex flex-col sm:flex-row justify-between mb-5 gap-4">
                 <div class="flex flex-1 items-center gap-3">
-                    <input type="text" id="inventorySearchInput" placeholder="快速定位物品名称..." class="w-full sm:w-80 px-4 py-3 border-2 border-indigo-100 bg-white rounded-2xl text-sm font-bold shadow-sm focus:border-indigo-500 transition-all" oninput="handleInventorySearch()">
-                    <span id="inventoryCountDisplay" class="hidden sm:inline-block text-xs font-bold text-slate-500 bg-white px-4 py-2 rounded-xl border border-slate-100 shadow-sm">共 0 个品类</span>
+                    <input type="text" id="inventorySearchInput" placeholder="搜索物品名称..." class="w-full sm:w-72 px-4 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-medium shadow-sm focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-all" oninput="handleInventorySearch()">
+                    <span id="inventoryCountDisplay" class="hidden sm:inline-block text-xs font-medium text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">共 0 个品类</span>
                 </div>
-                <button onclick="openCategoryModal()" class="admin-only px-6 py-3 bg-indigo-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-indigo-100 active:scale-95 transition-transform">建档入库</button>
+                <button onclick="openCategoryModal()" class="admin-only w-full sm:w-auto px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-medium text-sm shadow-sm hover:bg-indigo-700 transition-colors flex items-center justify-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    直接建档入库
+                </button>
             </div>
-            <div class="bg-white sm:rounded-3xl sm:shadow-xl sm:shadow-slate-200/50 border border-slate-100 overflow-hidden">
-                <table class="min-w-full responsive-table">
-                    <thead class="bg-slate-50/50 border-b border-slate-100">
-                        <tr class="text-[11px] font-black text-slate-400 uppercase tracking-widest text-left">
-                            <th class="px-6 py-4">图片预览</th><th>物品名称</th><th>当前库存</th><th>单位</th><th class="admin-only">管理操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="inventoryBody"></tbody>
-                </table>
+            
+            <div class="bg-white sm:rounded-2xl sm:shadow-sm border border-slate-200 overflow-hidden">
+                <div class="pc-table-container">
+                    <table class="pc-table responsive-table">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="w-20">物品图片</th>
+                                <th>物品名称</th>
+                                <th>当前库存</th>
+                                <th>单位</th>
+                                <th class="admin-only">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryBody" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+                <div id="inventoryEmpty" class="hidden py-16 text-center text-slate-400 text-sm">没有找到相关物品</div>
             </div>
         </div>
 
-        <!-- 明细视图 -->
+        <!-- 视图2: 明细记录 -->
         <div id="transactionsView" class="hidden">
-            <div class="flex flex-col lg:flex-row justify-between mb-5 gap-3">
+            <div class="flex flex-col lg:flex-row justify-between mb-5 gap-4">
                 <div class="flex flex-col sm:flex-row gap-3">
-                    <input type="text" id="searchInput" oninput="handleSearch()" placeholder="搜索日期、经办人、物品..." class="w-full sm:w-80 px-4 py-3 border-2 border-indigo-100 bg-white rounded-2xl text-sm font-bold shadow-sm focus:border-indigo-500" />
-                    <div class="flex items-center gap-2">
-                        <input type="date" id="startDate" onchange="handleDateFilter()" class="px-3 py-3 border border-slate-200 rounded-2xl text-sm font-bold bg-white">
-                        <span class="text-slate-300 font-bold">至</span>
-                        <input type="date" id="endDate" onchange="handleDateFilter()" class="px-3 py-3 border border-slate-200 rounded-2xl text-sm font-bold bg-white">
+                    <input type="text" id="searchInput" oninput="handleSearch()" placeholder="搜索物品名称、经办人、备注..." class="w-full sm:w-72 px-4 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-medium shadow-sm focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-all" />
+                    <div class="flex items-center gap-2 bg-white px-3 py-1 border border-slate-200 rounded-xl shadow-sm">
+                        <input type="date" id="startDate" onchange="handleDateFilter()" class="text-sm font-medium text-slate-600 bg-transparent py-1">
+                        <span class="text-slate-300">-</span>
+                        <input type="date" id="endDate" onchange="handleDateFilter()" class="text-sm font-medium text-slate-600 bg-transparent py-1">
                     </div>
                 </div>
                 <div class="flex gap-2 admin-only">
-                    <button onclick="openModal()" class="px-4 py-3 bg-indigo-600 text-white rounded-2xl font-black text-sm shadow-md active:scale-95 transition-transform">新增入/出库</button>
-                    <button onclick="exportToExcel()" class="px-4 py-3 bg-emerald-600 text-white rounded-2xl font-black text-sm shadow-md active:scale-95 transition-transform">导出 Excel</button>
+                    <button onclick="openModal()" class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm shadow-sm hover:bg-blue-700 transition-colors flex items-center justify-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        入/出库记录
+                    </button>
+                    <button onclick="exportToExcel()" class="px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm shadow-sm hover:bg-emerald-700 transition-colors">导出 Excel</button>
                 </div>
             </div>
-            <div class="bg-white sm:rounded-3xl sm:shadow-xl sm:shadow-slate-200/50 border border-slate-100 overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table id="inventoryTable" class="min-w-full responsive-table">
-                        <thead class="bg-slate-50/50 border-b border-slate-100">
-                            <tr class="text-[11px] font-black text-slate-400 uppercase tracking-widest text-left">
-                                <th class="admin-only w-10">选</th><th>序号</th><th>物品名称</th><th>操作类型</th><th>数量</th><th>单位</th><th>变动日期</th><th>经办人</th><th class="remarks-cell">备注说明</th><th class="admin-only">操作</th>
+            <div class="bg-white sm:rounded-2xl sm:shadow-sm border border-slate-200 overflow-hidden">
+                <div class="pc-table-container">
+                    <table class="pc-table responsive-table">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="admin-only w-12 text-center">选</th>
+                                <th class="w-16">序号</th>
+                                <th>日期</th>
+                                <th>物品名称</th>
+                                <th>操作类型</th>
+                                <th>数量</th>
+                                <th>单位</th>
+                                <th>经办人</th>
+                                <th class="remarks-cell">备注</th>
+                                <th class="admin-only">操作</th>
                             </tr>
                         </thead>
-                        <tbody id="tableBody"></tbody>
+                        <tbody id="tableBody" class="divide-y divide-slate-100"></tbody>
                     </table>
                 </div>
-                <div id="emptyState" class="hidden py-24 text-center">
-                    <div class="text-slate-300 mb-2">
-                        <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    </div>
-                    <p class="text-slate-400 font-bold text-lg">没有查询到相关明细记录</p>
-                </div>
+                <div id="emptyState" class="hidden py-16 text-center text-slate-400 text-sm">暂无匹配的出入库明细</div>
             </div>
         </div>
     </main>
 
-    <!-- UI 组件 (Modals) -->
-    <div id="authModal" class="fixed inset-0 z-[100] modal-hidden items-center justify-center bg-slate-900/70 backdrop-blur-md">
-        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm mx-4 p-8 space-y-6">
-            <h3 id="authModalTitle" class="text-2xl font-black text-slate-900 text-center">管理员验证</h3>
+    <!-- UI 弹窗组件 -->
+    
+    <!-- 全局提示气泡 -->
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 translate-y-10 opacity-0 transition-all duration-300 bg-slate-800 text-white px-6 py-3 rounded-xl text-sm font-medium shadow-xl z-[300] pointer-events-none flex items-center gap-2">
+        <span id="toastMessage">操作成功</span>
+    </div>
+
+    <!-- 权限验证 -->
+    <div id="authModal" class="fixed inset-0 z-[100] modal-hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6">
+            <div class="flex justify-between items-center mb-5">
+                <h3 id="authModalTitle" class="text-lg font-bold text-slate-800">管理员登录</h3>
+                <button onclick="closeAuthModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
             <div class="space-y-4">
                 <div id="oldPwdGroup" class="hidden">
-                    <label class="block text-xs font-black text-slate-400 mb-2 tracking-widest uppercase">原密码</label>
-                    <input type="password" id="authOldPwd" class="w-full px-5 py-4 bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-500 transition-all font-bold">
+                    <label class="block text-sm font-medium text-slate-600 mb-1">原密码</label>
+                    <input type="password" id="authOldPwd" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-black text-slate-400 mb-2 tracking-widest uppercase">管理密码</label>
-                    <input type="password" id="authMainPwd" class="w-full px-5 py-4 bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-500 transition-all font-bold" placeholder="请输入 6 位管理密码">
+                    <label class="block text-sm font-medium text-slate-600 mb-1">管理密码</label>
+                    <input type="password" id="authMainPwd" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="默认为 123456">
+                </div>
+                <button onclick="handleAuthSubmit()" class="w-full py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors mt-2">确 认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 录入记录 -->
+    <div id="recordModal" class="fixed inset-0 z-50 modal-hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 flex flex-col overflow-hidden max-h-[90vh]">
+            <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-slate-800 text-lg">新增出入库记录</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 text-xl">✕</button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">日期 <span class="text-rose-500">*</span></label>
+                        <input type="date" id="formDate" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">操作类型 <span class="text-rose-500">*</span></label>
+                        <select id="formType" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 bg-white">
+                            <option value="入库">入库 (增加库存)</option>
+                            <option value="出库">出库 (领用消耗)</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">物品名称 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="formItemName" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" oninput="handleItemNameInput()" placeholder="例如：A4打印纸">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">数量 <span class="text-rose-500">*</span></label>
+                        <input type="number" id="formQuantity" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-bold text-indigo-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">单位 <span class="text-rose-500">*</span></label>
+                        <input type="text" id="formUnit" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder="包 / 个 / 支">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">经办人 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="formHandler" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">备注说明</label>
+                    <textarea id="formRemarks" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder="选填..."></textarea>
                 </div>
             </div>
-            <button onclick="handleAuthSubmit()" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 active:scale-95 transition-all">确认进入</button>
-            <button onclick="closeAuthModal()" class="w-full text-sm text-slate-400 font-bold hover:text-slate-600">取消返回</button>
-        </div>
-    </div>
-
-    <!-- 自定义通知弹窗 -->
-    <div id="customDialog" class="fixed inset-0 z-[200] hidden items-center justify-center bg-slate-900/80 backdrop-blur-md">
-        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-xs mx-4 p-8 text-center animate-in fade-in zoom-in duration-300">
-            <h3 id="dialogTitle" class="text-xl font-black text-slate-900 mb-3">温馨提示</h3>
-            <p id="dialogMessage" class="text-slate-500 font-bold mb-8 leading-relaxed"></p>
-            <div class="flex gap-3">
-                <button id="dialogCancelBtn" class="hidden flex-1 py-4 bg-slate-50 rounded-2xl font-bold text-slate-400 hover:bg-slate-100">取消</button>
-                <button id="dialogConfirmBtn" class="flex-1 py-4 bg-slate-900 rounded-2xl font-black text-white shadow-lg active:scale-95 transition-all">好 的</button>
+            <div class="px-6 py-4 bg-slate-50 border-t flex justify-end gap-3">
+                <button onclick="closeModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-600 bg-white hover:bg-slate-50">取消</button>
+                <button onclick="saveRecord()" class="px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 shadow-sm">保存记录</button>
             </div>
         </div>
     </div>
 
-    <!-- 成功气泡 -->
-    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 translate-y-20 opacity-0 transition-all duration-500 bg-slate-900/95 text-white px-8 py-4 rounded-3xl font-black shadow-2xl z-[300] whitespace-nowrap flex items-center gap-3">
-        <svg class="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg>
-        <span id="toastMessage">操作成功</span>
+    <!-- 建档品类 -->
+    <div id="categoryModal" class="fixed inset-0 z-50 modal-hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden">
+            <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-slate-800">建档新品类</h3>
+                <button onclick="closeCategoryModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <form id="categoryForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">物品名称 <span class="text-rose-500">*</span></label>
+                        <input type="text" id="catItemName" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">单位 <span class="text-rose-500">*</span></label>
+                            <input type="text" id="catUnit" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">初始库存</label>
+                            <input type="number" id="catStock" value="0" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-bold focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t flex justify-end gap-3">
+                <button onclick="closeCategoryModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-600 bg-white hover:bg-slate-50">取消</button>
+                <button onclick="saveCategory()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 shadow-sm">确认建档</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 弹窗提示 -->
+    <div id="customDialog" class="fixed inset-0 z-[200] hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-xs mx-4 p-6 text-center">
+            <h3 id="dialogTitle" class="text-lg font-bold text-slate-800 mb-2">提示</h3>
+            <p id="dialogMessage" class="text-sm text-slate-600 mb-6 leading-relaxed"></p>
+            <div class="flex gap-3 justify-center">
+                <button id="dialogConfirmBtn" class="px-6 py-2 bg-indigo-600 rounded-lg text-sm font-medium text-white hover:bg-indigo-700">我知道了</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图片查看 -->
+    <div id="imagePreviewModal" class="fixed inset-0 z-[100] modal-hidden items-center justify-center bg-slate-900/90 backdrop-blur-sm" onclick="closeImagePreview()">
+        <img id="previewImage" src="" class="max-w-[90vw] max-h-[85vh] object-contain rounded-xl shadow-lg border border-white/20">
     </div>
 
     <input type="file" id="imageUploadInput" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
 
-    <!-- 录入 & 建档 Modal 复用此前优化的逻辑... -->
-    <!-- (此处省略部分冗余的静态 HTML，下方的 script 已包含完整修复) -->
-
     <script>
         /* =========================================================================
-         * 🚀 终极核心配置
+         * 🚀 核心配置 (JSONBin)
          * ========================================================================= */
         const JSONBIN_BIN_ID = '69e1e417856a682189430290';
         const JSONBIN_API_KEY = '$2a$10$C11DanQnGAZV0TJsaSG3k.1X9VTBkmcL6Gffh1RbYjhMNSOaPmNNC';
@@ -235,26 +368,26 @@
         let isAdmin = false; 
         let authMode = 'login';
         let inventorySearchKey = '';
-        const isCloudEnabled = JSONBIN_BIN_ID && JSONBIN_BIN_ID !== '69e1e417856a682189430290'; 
 
-        // 进度条
+        /* 进度条动画 */
         function startBar() { const b = document.getElementById('topProgressBar'); if(b){ b.style.opacity = '1'; b.style.width = '60%'; } }
         function endBar(isErr = false) { 
             const b = document.getElementById('topProgressBar'); if(!b) return;
-            b.style.width = '100%'; b.style.backgroundColor = isErr ? '#f43f5e' : '#4f46e5';
-            setTimeout(() => { b.style.opacity = '0'; setTimeout(() => b.style.width = '0%', 300); }, 500); 
+            b.style.width = '100%'; b.style.backgroundColor = isErr ? '#f43f5e' : '#6366f1';
+            setTimeout(() => { b.style.opacity = '0'; setTimeout(() => { b.style.width = '0%'; b.style.backgroundColor = '#6366f1'; }, 300); }, 500); 
         }
 
+        /* 启动流程 */
         document.addEventListener('DOMContentLoaded', () => {
             const savedLogo = localStorage.getItem('companyLogo');
-            if (savedLogo) document.getElementById('companyLogo').src = savedLogo;
+            if (savedLogo) {
+                const logoEl = document.getElementById('companyLogo');
+                if (logoEl) logoEl.src = savedLogo;
+            }
 
-            initLocalData(); // 立即渲染首屏
-            syncFromCloud(); // 后台同步
-            
-            setAdminStatus(false); 
-            const dateInput = document.getElementById('formDate');
-            if(dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+            initLocalData();
+            syncFromCloud();
+            setAdminStatus(false);
         });
 
         async function syncFromCloud() {
@@ -263,7 +396,7 @@
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
                     headers: { 'X-Master-Key': JSONBIN_API_KEY }
                 });
-                if (!response.ok) throw new Error('同步网络异常');
+                if (!response.ok) throw new Error();
                 const data = await response.json();
                 const store = data.record;
                 if (store) {
@@ -272,39 +405,34 @@
                     if (store.adminPassword) localStorage.setItem('adminPassword', store.adminPassword);
                     if (store.companyName) {
                         const nameEl = document.getElementById('companyName');
-                        if(nameEl) nameEl.innerText = store.companyName;
+                        if (nameEl) nameEl.innerText = store.companyName;
                     }
                     if (store.companyLogo) {
                         const logoEl = document.getElementById('companyLogo');
-                        if(logoEl) logoEl.src = store.companyLogo;
-                        localStorage.setItem('companyLogo', store.companyLogo);
+                        if (logoEl) {
+                            logoEl.src = store.companyLogo;
+                            localStorage.setItem('companyLogo', store.companyLogo);
+                        }
                     }
-                    saveLocal();
-                    updateTable();
+                    saveLocal(); 
+                    updateTable(); 
                     renderInventory();
-                    const statusEl = document.getElementById('syncStatus');
-                    if(statusEl) statusEl.classList.remove('hidden');
+                    const syncEl = document.getElementById('syncStatus');
+                    if (syncEl) syncEl.classList.remove('hidden');
                 }
                 endBar();
-            } catch (error) {
-                console.warn("Cloud Sync Fail:", error);
-                endBar(true);
-            }
+            } catch (e) { endBar(true); }
         }
 
         async function saveDataToCloud() {
             saveLocal();
             const dataToSave = {
-                inventoryData,
-                productCatalog,
+                inventoryData, productCatalog,
                 adminPassword: localStorage.getItem('adminPassword') || '123456',
-                companyName: document.getElementById('companyName').innerText,
+                companyName: document.getElementById('companyName') ? document.getElementById('companyName').innerText : '管理系统',
                 companyLogo: localStorage.getItem('companyLogo') || ''
             };
             
-            const size = new Blob([JSON.stringify(dataToSave)]).size;
-            if (size > 125000) { showToast('⚠️ 空间受限，请勿继续传大图'); return; }
-
             startBar();
             try {
                 const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
@@ -312,12 +440,9 @@
                     headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
                     body: JSON.stringify(dataToSave)
                 });
-                if(!res.ok) throw new Error('Cloud Storage Full');
+                if(!res.ok) throw new Error();
                 endBar();
-            } catch (error) { 
-                endBar(true); 
-                showToast('云端保存失败');
-            }
+            } catch (e) { endBar(true); showToast('网络异常，修改仅保存在本地'); }
         }
 
         function saveLocal() {
@@ -334,37 +459,48 @@
             renderInventory();
         }
 
+        /* 渲染出入库明细 */
         function renderTable(data) {
             const tbody = document.getElementById('tableBody');
-            if(!tbody) return;
+            const emptyState = document.getElementById('emptyState');
+            if(!tbody || !emptyState) return;
+            
             tbody.innerHTML = '';
-            if (data.length === 0) { document.getElementById('emptyState').classList.remove('hidden'); return; }
-            document.getElementById('emptyState').classList.add('hidden');
+            
+            if (data.length === 0) { 
+                emptyState.classList.remove('hidden'); 
+                return; 
+            }
+            emptyState.classList.add('hidden');
 
             data.forEach((item, index) => {
                 const tr = document.createElement('tr');
-                tr.className = `hover:bg-indigo-50/30 transition-colors border-b border-slate-50 group`;
-                const typeStyle = item.type === '入库' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600';
+                tr.className = `hover:bg-slate-50 transition-colors`;
+                const typeStyle = item.type === '入库' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700';
                 
                 tr.innerHTML = `
-                    ${isAdmin ? `<td class="px-6 py-4"><input type="checkbox" onchange="toggleRow(${item.id})" class="rounded-md w-5 h-5 border-slate-300"></td>` : ''}
-                    <td class="td-index font-bold text-slate-300">${index + 1}</td>
-                    <td class="td-name font-black text-slate-800">${item.itemName}</td>
-                    <td class="td-type"><span class="px-3 py-1.5 rounded-xl font-black text-[11px] tracking-widest ${typeStyle}">${item.type}</span></td>
-                    <td class="td-qty font-black text-lg text-slate-900">${item.quantity}</td>
-                    <td class="td-unit font-bold text-slate-400 uppercase text-xs">${item.unit}</td>
-                    <td class="td-date text-slate-400 font-bold text-xs">${item.date}</td>
-                    <td class="td-handler font-black text-slate-700">${item.handler}</td>
-                    <td class="remarks-cell text-slate-400 italic text-xs">${item.remarks || '-'}</td>
-                    ${isAdmin ? `<td class="action-cell"><button onclick="deleteRow(${item.id})" class="text-rose-400 hover:text-rose-600 font-black text-sm px-4 py-2 rounded-xl hover:bg-rose-50 transition-all">删除</button></td>` : ''}
+                    ${isAdmin ? `<td class="admin-only text-center"><input type="checkbox" onchange="toggleRow(${item.id})" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"></td>` : ''}
+                    <td class="td-index text-slate-500 text-sm" data-label="序号">${index + 1}</td>
+                    <td class="td-date text-slate-600 text-sm" data-label="日期">${item.date}</td>
+                    <td class="td-name font-semibold text-slate-900 text-sm" data-label="物品名称">${item.itemName}</td>
+                    <td class="td-type" data-label="类型"><span class="px-2 py-1 rounded-md font-semibold text-xs ${typeStyle}">${item.type}</span></td>
+                    <td class="td-qty font-bold text-slate-900 text-sm" data-label="数量">${item.quantity}</td>
+                    <td class="td-unit text-slate-500 text-sm" data-label="单位">${item.unit}</td>
+                    <td class="td-handler text-slate-700 text-sm" data-label="经办人">${item.handler}</td>
+                    <td class="remarks-cell td-remarks text-slate-500 text-xs" data-label="备注" title="${item.remarks || ''}">${item.remarks || '-'}</td>
+                    ${isAdmin ? `<td class="action-cell" data-label="操作"><button onclick="deleteRow(${item.id})" class="text-rose-500 hover:text-rose-700 font-medium text-sm">删除</button></td>` : ''}
                 `;
                 tbody.appendChild(tr);
             });
         }
 
+        /* 渲染库存展示 */
         function renderInventory() {
             const tbody = document.getElementById('inventoryBody');
+            const countEl = document.getElementById('inventoryCountDisplay');
+            const emptyEl = document.getElementById('inventoryEmpty');
             if(!tbody) return;
+            
             tbody.innerHTML = '';
             let stockMap = {};
             inventoryData.forEach(i => {
@@ -374,179 +510,311 @@
 
             const keys = Object.keys(productCatalog).filter(k => k.toLowerCase().includes(inventorySearchKey.toLowerCase()));
 
+            if (keys.length === 0) {
+                if (emptyEl) emptyEl.classList.remove('hidden');
+                if (countEl) countEl.innerText = `共 0 个品类`;
+                return;
+            }
+            if (emptyEl) emptyEl.classList.add('hidden');
+
             keys.forEach(name => {
                 const tr = document.createElement('tr');
-                tr.className = 'hover:bg-slate-50 transition-colors border-b border-slate-50';
+                tr.className = 'hover:bg-slate-50 transition-colors';
                 const cur = (stockMap[name] || 0) + (productCatalog[name].stockOffset || 0);
                 const info = productCatalog[name];
-                const img = info.image || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdib3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjZDJkNWRiIiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik00IDE2bDQuNTg2LTQuNTg2YTIgMiAwIDAxMi44MjggMEwxNiAxNm0tMi0ybDEuNTg2LTEuNTg2YTIgMiAwIDAxMi44MjggMEwyMCAxNG0tNi02aC4wMU02IDIwaDEyYTIgMiAwIDAwMi0yVjZhMiAyIDAgMDAtMi0ySDZhMiAyIDAgMDAtMiAydjE2bTE0IDBoMm0tMiAwaC01bS05IDBIM20yIDBoNU05IDdoMW0tMSA0aDFtNC00aDFtLTEgNGgxbS01IDEwdi01YTEgMSAwIDAxMS0xaDJhMSAxIDAgMDExIDF2NW0tNCAwaDQiLz48L3N2Zz4=';
+                const img = info.image || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdib3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjZDJkNWRiIiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik00IDE2bDQuNTg2LTQuNTg2YTIgMiAwIDAxMi44MjggMEwxNiAxNm0tMi0ybDEuNTg2LTEuNTg2YTIgMiAwIDAxMi44MjggMEwyMCAxNG0tNi02aC4wMU02IDIwaDEyYTIgMiAwIDAwMi0yVjZhMiAyIDAgMDAtMi0ySDZhMiAyIDAgMDAtMiAydjEyYTIgMiAwIDAwMiAycyIvPjwvc3ZnPg==';
                 
                 tr.innerHTML = `
-                    <td class="img-cell px-6 py-4"><img src="${img}" onclick="openImg('${img}')" class="h-12 w-12 sm:h-14 sm:w-14 object-cover rounded-2xl border border-slate-100 bg-white shadow-sm hover:scale-110 transition-transform cursor-zoom-in"></td>
-                    <td data-label="物品名称" class="px-6 py-4 font-black text-slate-800 text-lg">${name}</td>
-                    <td data-label="当前库存" class="px-6 py-4 font-black text-2xl ${cur <= 5 ? 'text-rose-500' : 'text-indigo-600'}">${cur}</td>
-                    <td data-label="单位" class="px-6 py-4 text-slate-400 font-black text-xs uppercase tracking-widest">${info.unit}</td>
-                    ${isAdmin ? `<td class="action-cell px-6 py-4"><button onclick="upImg('${encodeURIComponent(name)}')" class="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl font-black text-xs mr-3 hover:bg-indigo-600 hover:text-white transition-all shadow-sm">传图</button><button onclick="delInv('${encodeURIComponent(name)}')" class="text-slate-300 font-bold hover:text-rose-500 transition-colors">下架</button></td>` : ''}
+                    <td class="img-cell"><img src="${img}" onclick="openImg('${img}')" class="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded-lg border border-slate-200 bg-white cursor-zoom-in hover:opacity-80 transition-opacity"></td>
+                    <td class="td-name font-semibold text-slate-900 text-sm sm:text-base" data-label="物品名称">${name}</td>
+                    <td class="td-stock font-bold text-base sm:text-lg ${cur <= 5 ? 'text-rose-500' : 'text-slate-900'}" data-label="当前库存">${cur}</td>
+                    <td class="td-unit text-slate-500 text-sm" data-label="单位">${info.unit}</td>
+                    ${isAdmin ? `<td class="action-cell"><button onclick="upImg('${encodeURIComponent(name)}')" class="text-indigo-600 font-medium text-sm mr-4 hover:underline">更换图片</button><button onclick="delInv('${encodeURIComponent(name)}')" class="text-rose-500 font-medium text-sm hover:underline">下架</button></td>` : ''}
                 `;
                 tbody.appendChild(tr);
             });
             
-            // 安全更新品类总数
-            const countEl = document.getElementById('inventoryCountDisplay');
-            if(countEl) countEl.innerText = `共 ${keys.length} 个物品品类`;
+            if(countEl) countEl.innerText = `共 ${keys.length} 个品类`;
         }
 
-        /* 核心业务逻辑函数 (上传、搜索等) */
+        /* 上传与同步功能 */
+        function triggerLogoUpload() { if(isAdmin) { const i = document.getElementById('logoUploadInput'); if(i) i.click(); } else showToast('请先登录管理员'); }
+        function handleLogoUpload(e) {
+            const f = e.target.files[0]; if (!f) return;
+            const r = new FileReader();
+            r.onload = (evt) => {
+                const base64 = evt.target.result;
+                const logoEl = document.getElementById('companyLogo');
+                if(logoEl) logoEl.src = base64; 
+                localStorage.setItem('companyLogo', base64); 
+                saveDataToCloud(); 
+                showToast('Logo 更新成功');
+            };
+            r.readAsDataURL(f);
+        }
+
         let upTarget = '';
-        function upImg(n) { upTarget = decodeURIComponent(n); document.getElementById('imageUploadInput').click(); }
-        
+        function upImg(n) { upTarget = decodeURIComponent(n); const i = document.getElementById('imageUploadInput'); if(i) i.click(); }
         function handleImageUpload(e) {
             const f = e.target.files[0]; if (!f) return;
             const reader = new FileReader();
-            reader.onload = function(evt) {
+            reader.onload = (evt) => {
                 const img = new Image();
-                img.onload = function() {
+                img.onload = () => {
                     const cvs = document.createElement('canvas');
                     const MAX = 80; let w = img.width, h = img.height;
                     if (w > MAX) { h = Math.round((h * MAX) / w); w = MAX; }
                     cvs.width = w; cvs.height = h;
                     const ctx = cvs.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
-                    productCatalog[upTarget].image = cvs.toDataURL('image/jpeg', 0.4);
-                    saveDataToCloud(); renderInventory(); showToast('物品图片同步成功');
+                    productCatalog[upTarget].image = cvs.toDataURL('image/jpeg', 0.5);
+                    saveDataToCloud(); renderInventory(); showToast('图片更新成功');
                 };
                 img.src = evt.target.result;
             };
             reader.readAsDataURL(f);
+            e.target.value = ''; // 重置 file input
         }
 
-        function handleLogoUpload(e) {
-            const f = e.target.files[0]; if (!f) return;
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                if (f.type.includes('svg')) { finishLogo(evt.target.result); return; }
-                const img = new Image();
-                img.onload = function() {
-                    const cvs = document.createElement('canvas'); cvs.width = 150; cvs.height = 150;
-                    cvs.getContext('2d').drawImage(img, 0, 0, 150, 150);
-                    finishLogo(cvs.toDataURL('image/png', 0.6));
-                };
-                img.src = evt.target.result;
-            };
-            reader.readAsDataURL(f);
-        }
-
-        function finishLogo(b) { 
-            const logoEl = document.getElementById('companyLogo');
-            if(logoEl) logoEl.src = b; 
-            localStorage.setItem('companyLogo', b); 
-            saveDataToCloud(); 
-            showToast('公司Logo同步成功'); 
-        }
-
-        function triggerLogoUpload() { if(isAdmin) document.getElementById('logoUploadInput').click(); else showToast('请先以管理员身份登录'); }
-        
+        /* 基础控制函数 */
         function showToast(m) { 
-            const t = document.getElementById('toast');
-            const msgEl = document.getElementById('toastMessage');
-            if(!t || !msgEl) return;
-            msgEl.innerText = m; 
-            t.classList.remove('translate-y-20', 'opacity-0');
-            t.classList.add('translate-y-0', 'opacity-100');
+            const t = document.getElementById('toast'); 
+            const tm = document.getElementById('toastMessage');
+            if(!t || !tm) return;
+            tm.innerText = m; 
+            t.classList.remove('translate-y-20', 'opacity-0'); 
+            t.classList.add('translate-y-0', 'opacity-100'); 
             setTimeout(() => { 
-                t.classList.add('translate-y-20', 'opacity-0');
-                t.classList.remove('translate-y-0', 'opacity-100');
+                t.classList.replace('translate-y-0', 'translate-y-20'); 
+                t.classList.replace('opacity-100', 'opacity-0'); 
             }, 3000); 
+        }
+        
+        function switchTab(t) { 
+            const isInv = t === 'inventory'; 
+            const vInv = document.getElementById('inventoryView');
+            const vTrans = document.getElementById('transactionsView');
+            const tInv = document.getElementById('tab-inventory');
+            const tTrans = document.getElementById('tab-transactions');
+            
+            if(vInv) vInv.classList.toggle('hidden', !isInv); 
+            if(vTrans) vTrans.classList.toggle('hidden', isInv); 
+            
+            if(tInv) tInv.className = isInv ? 'flex-1 sm:flex-none py-3 px-6 sm:px-8 border-b-2 border-indigo-600 text-indigo-600 font-semibold text-sm sm:text-base transition-colors' : 'flex-1 sm:flex-none py-3 px-6 sm:px-8 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-medium text-sm sm:text-base transition-colors'; 
+            if(tTrans) tTrans.className = !isInv ? 'flex-1 sm:flex-none py-3 px-6 sm:px-8 border-b-2 border-indigo-600 text-indigo-600 font-semibold text-sm sm:text-base transition-colors' : 'flex-1 sm:flex-none py-3 px-6 sm:px-8 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-medium text-sm sm:text-base transition-colors'; 
         }
 
         function handleInventorySearch() { 
-            const input = document.getElementById('inventorySearchInput');
-            inventorySearchKey = input ? input.value : ''; 
+            const el = document.getElementById('inventorySearchInput');
+            if(el) inventorySearchKey = el.value; 
             renderInventory(); 
         }
-
+        
         function handleSearch() { 
-            const input = document.getElementById('searchInput');
-            const k = input ? input.value.toLowerCase() : ''; 
-            const filtered = inventoryData.filter(i => 
-                i.itemName.toLowerCase().includes(k) || 
-                i.handler.toLowerCase().includes(k) || 
+            const el = document.getElementById('searchInput');
+            const k = el ? el.value.toLowerCase() : ''; 
+            renderTable(inventoryData.filter(i => 
+                (i.itemName && i.itemName.toLowerCase().includes(k)) || 
+                (i.handler && i.handler.toLowerCase().includes(k)) || 
                 (i.remarks && i.remarks.toLowerCase().includes(k))
-            );
-            renderTable(filtered); 
+            )); 
         }
 
         function handleDateFilter() { 
-            const s = document.getElementById('startDate').value; 
-            const e = document.getElementById('endDate').value; 
+            const sEl = document.getElementById('startDate');
+            const eEl = document.getElementById('endDate');
+            const s = sEl ? sEl.value : ''; 
+            const e = eEl ? eEl.value : ''; 
             let f = inventoryData; 
             if(s) f = f.filter(i => i.date >= s); 
             if(e) f = f.filter(i => i.date <= e); 
             renderTable(f); 
         }
 
-        function openAuthModal(m) { authMode = m; document.getElementById('authModal').classList.replace('modal-hidden', 'modal-active'); document.getElementById('oldPwdGroup').classList.toggle('hidden', m === 'login'); }
-        function closeAuthModal() { document.getElementById('authModal').classList.replace('modal-active', 'modal-hidden'); }
-        
-        function handleAuthSubmit() {
-            const p = document.getElementById('authMainPwd').value;
-            const s = localStorage.getItem('adminPassword') || '123456';
-            if(authMode === 'login') { if(p === s) { setAdminStatus(true); closeAuthModal(); showToast('欢迎管理员登录'); } else showToast('管理密码不匹配'); }
-            else { if(document.getElementById('authOldPwd').value !== s) showToast('原密码验证失败'); else { localStorage.setItem('adminPassword', p); saveDataToCloud(); closeAuthModal(); showToast('新管理密码设置成功'); } }
-            document.getElementById('authMainPwd').value = '';
-        }
-
         function setAdminStatus(s) { 
             isAdmin = s; 
-            document.getElementById('navLoginBtn').classList.toggle('hidden', s); 
-            document.getElementById('navLogoutBtn').classList.toggle('hidden', !s); 
-            document.getElementById('navChangePwdBtn').classList.toggle('hidden', !s); 
-            document.getElementById('companyName').setAttribute('contenteditable', s); 
+            document.body.classList.toggle('is-admin', s);
+            
+            const btnLogin = document.getElementById('navLoginBtn');
+            const btnLogout = document.getElementById('navLogoutBtn');
+            const btnPwd = document.getElementById('navChangePwdBtn');
+            const compName = document.getElementById('companyName');
+            
+            if(btnLogin) btnLogin.classList.toggle('hidden', s); 
+            if(btnLogout) btnLogout.classList.toggle('hidden', !s); 
+            if(btnPwd) btnPwd.classList.toggle('hidden', !s); 
+            if(compName) compName.setAttribute('contenteditable', s); 
+            
             updateTable(); 
             renderInventory(); 
         }
 
         function logoutAdmin() { setAdminStatus(false); showToast('已退出管理模式'); }
         
-        function switchTab(t) { 
-            const isInv = t === 'inventory'; 
-            document.getElementById('inventoryView').classList.toggle('hidden', !isInv); 
-            document.getElementById('transactionsView').classList.toggle('hidden', isInv); 
-            document.getElementById('tab-inventory').className = isInv ? 'flex-1 sm:flex-none py-3 px-8 border-b-2 border-indigo-600 text-indigo-600 font-black' : 'flex-1 sm:flex-none py-3 px-8 border-b-2 border-transparent text-slate-400 font-bold'; 
-            document.getElementById('tab-transactions').className = !isInv ? 'flex-1 sm:flex-none py-3 px-8 border-b-2 border-indigo-600 text-indigo-600 font-black' : 'flex-1 sm:flex-none py-3 px-8 border-b-2 border-transparent text-slate-400 font-bold'; 
+        function openAuthModal(m) { 
+            authMode = m; 
+            const modal = document.getElementById('authModal');
+            const title = document.getElementById('authModalTitle');
+            const oldGroup = document.getElementById('oldPwdGroup');
+            const mainInput = document.getElementById('authMainPwd');
+            
+            if(modal) modal.classList.replace('modal-hidden', 'modal-active'); 
+            if(oldGroup) oldGroup.classList.toggle('hidden', m === 'login'); 
+            if(title) title.innerText = m === 'login' ? '管理员登录' : '修改管理密码'; 
+            if(mainInput) {
+                mainInput.placeholder = m === 'login' ? '默认为 123456' : '请输入新密码';
+                setTimeout(() => mainInput.focus(), 100);
+            }
+        }
+        function closeAuthModal() { 
+            const modal = document.getElementById('authModal');
+            if(modal) modal.classList.replace('modal-active', 'modal-hidden'); 
+        }
+        
+        function handleAuthSubmit() {
+            const pwdEl = document.getElementById('authMainPwd');
+            const oldEl = document.getElementById('authOldPwd');
+            const p = pwdEl ? pwdEl.value : '';
+            const s = localStorage.getItem('adminPassword') || '123456';
+            
+            if(authMode === 'login') { 
+                if(p === s) { setAdminStatus(true); closeAuthModal(); showToast('验证通过'); } 
+                else showToast('密码不正确'); 
+            } else { 
+                if(oldEl && oldEl.value !== s) showToast('原密码不正确'); 
+                else if(!p) showToast('新密码不能为空');
+                else { localStorage.setItem('adminPassword', p); saveDataToCloud(); closeAuthModal(); showToast('修改成功'); } 
+            }
+            if(pwdEl) pwdEl.value = '';
+            if(oldEl) oldEl.value = '';
         }
 
-        function openModal() { document.getElementById('recordModal').classList.replace('modal-hidden', 'modal-active'); }
-        function closeModal() { document.getElementById('recordModal').classList.replace('modal-active', 'modal-hidden'); }
-        function openCategoryModal() { document.getElementById('categoryModal').classList.replace('modal-hidden', 'modal-active'); }
-        function closeCategoryModal() { document.getElementById('categoryModal').classList.replace('modal-active', 'modal-hidden'); }
+        function openModal() { 
+            const modal = document.getElementById('recordModal');
+            if(modal) modal.classList.replace('modal-hidden', 'modal-active'); 
+        }
+        function closeModal() { 
+            const modal = document.getElementById('recordModal');
+            if(modal) modal.classList.replace('modal-active', 'modal-hidden'); 
+        }
+        function openCategoryModal() { 
+            const modal = document.getElementById('categoryModal');
+            if(modal) modal.classList.replace('modal-hidden', 'modal-active'); 
+        }
+        function closeCategoryModal() { 
+            const modal = document.getElementById('categoryModal');
+            if(modal) modal.classList.replace('modal-active', 'modal-hidden'); 
+        }
 
         async function saveRecord() {
-            const name = document.getElementById('formItemName').value;
-            const qty = parseInt(document.getElementById('formQuantity').value);
-            const unit = document.getElementById('formUnit').value;
-            if(!name || isNaN(qty) || !unit) return showToast('必填项不能为空');
-            const item = { id: Date.now(), itemName: name, type: document.getElementById('formType').value, quantity: qty, unit, date: document.getElementById('formDate').value, handler: document.getElementById('formHandler').value, remarks: document.getElementById('formRemarks').value };
+            const nameEl = document.getElementById('formItemName');
+            const qtyEl = document.getElementById('formQuantity');
+            const typeEl = document.getElementById('formType');
+            const unitEl = document.getElementById('formUnit');
+            const dateEl = document.getElementById('formDate');
+            const handlerEl = document.getElementById('formHandler');
+            const remarksEl = document.getElementById('formRemarks');
+
+            if(!nameEl || !qtyEl || !unitEl) return;
+
+            const name = nameEl.value.trim();
+            const qty = parseInt(qtyEl.value);
+            
+            if(!name || isNaN(qty)) return showToast('必填项不能为空');
+            
+            const item = { 
+                id: Date.now(), 
+                itemName: name, 
+                type: typeEl ? typeEl.value : '入库', 
+                quantity: qty, 
+                unit: unitEl.value, 
+                date: dateEl ? dateEl.value : getTodayString(), 
+                handler: handlerEl ? handlerEl.value : '', 
+                remarks: remarksEl ? remarksEl.value : '' 
+            };
+            
             inventoryData.unshift(item); 
-            if(!productCatalog[item.itemName]) productCatalog[item.itemName] = { unit: item.unit, stockOffset: 0 };
-            await saveDataToCloud(); updateTable(); renderInventory(); closeModal(); showToast('出入库记录同步成功');
+            if(!productCatalog[name]) productCatalog[name] = { unit: item.unit, stockOffset: 0 };
+            
+            await saveDataToCloud(); 
+            updateTable(); 
+            renderInventory(); 
+            closeModal(); 
+            
+            // 清空表单
+            nameEl.value = '';
+            qtyEl.value = '';
+            if(remarksEl) remarksEl.value = '';
+            
+            showToast('保存成功'); 
         }
 
         async function saveCategory() {
-            const n = document.getElementById('catItemName').value; 
-            const u = document.getElementById('catUnit').value;
-            if(!n || !u) return showToast('品名与单位不能为空');
-            productCatalog[n] = { unit: u, stockOffset: parseInt(document.getElementById('catStock').value || 0), image: null };
-            await saveDataToCloud(); renderInventory(); closeCategoryModal(); showToast('新品类已同步云端');
+            const nEl = document.getElementById('catItemName');
+            const uEl = document.getElementById('catUnit');
+            const sEl = document.getElementById('catStock');
+            
+            if(!nEl || !uEl) return;
+            const n = nEl.value.trim();
+            const u = uEl.value.trim();
+            
+            if(!n || !u) return showToast('请填写品名与单位');
+            
+            productCatalog[n] = { unit: u, stockOffset: parseInt(sEl ? sEl.value : 0) || 0, image: null };
+            await saveDataToCloud(); 
+            renderInventory(); 
+            closeCategoryModal(); 
+            
+            nEl.value = ''; uEl.value = ''; if(sEl) sEl.value = '0';
+            
+            showToast('建档成功'); 
         }
 
-        async function deleteRow(id) { if(!confirm('确定要永久删除这条记录吗？')) return; inventoryData = inventoryData.filter(i => i.id !== id); await saveDataToCloud(); updateTable(); renderInventory(); }
-        async function delInv(n) { if(!confirm('确定要删除此品类及其所有数据吗？')) return; delete productCatalog[decodeURIComponent(n)]; await saveDataToCloud(); renderInventory(); }
-        function openImg(s) { document.getElementById('previewImage').src = s; document.getElementById('imagePreviewModal').classList.replace('modal-hidden', 'modal-active'); }
-        function closeImagePreview() { document.getElementById('imagePreviewModal').classList.replace('modal-active', 'modal-hidden'); }
-        function saveCompanyName() { saveDataToCloud(); showToast('系统名称已同步'); }
+        async function deleteRow(id) { 
+            if(!confirm('确定要删除这条记录吗？')) return; 
+            inventoryData = inventoryData.filter(i => i.id !== id); 
+            await saveDataToCloud(); 
+            updateTable(); 
+            renderInventory(); 
+        }
+        
+        async function delInv(n) { 
+            if(!confirm('确定要删除此品类？')) return; 
+            delete productCatalog[decodeURIComponent(n)]; 
+            await saveDataToCloud(); 
+            renderInventory(); 
+        }
+
+        function openImg(s) { 
+            const modal = document.getElementById('imagePreviewModal');
+            const img = document.getElementById('previewImage');
+            if(modal && img) {
+                img.src = s; 
+                modal.classList.replace('modal-hidden', 'modal-active'); 
+            }
+        }
+        function closeImagePreview() { 
+            const modal = document.getElementById('imagePreviewModal');
+            if(modal) modal.classList.replace('modal-active', 'modal-hidden'); 
+        }
+
+        function saveCompanyName() { saveDataToCloud(); showToast('标题更新成功'); }
         function updateTable() { renderTable(inventoryData); }
-        function handleItemNameInput() { const n = document.getElementById('formItemName').value; if(productCatalog[n]) document.getElementById('formUnit').value = productCatalog[n].unit; }
-        function exportToExcel() { const ws = XLSX.utils.json_to_sheet(inventoryData); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "明细"); XLSX.writeFile(wb, `清单_${new Date().toLocaleDateString()}.xlsx`); }
+        
+        function handleItemNameInput() { 
+            const nEl = document.getElementById('formItemName');
+            const uEl = document.getElementById('formUnit');
+            if(nEl && uEl) {
+                const n = nEl.value; 
+                if(productCatalog[n]) uEl.value = productCatalog[n].unit; 
+            }
+        }
+        
+        function exportToExcel() { 
+            const ws = XLSX.utils.json_to_sheet(inventoryData); 
+            const wb = XLSX.utils.book_new(); 
+            XLSX.utils.book_append_sheet(wb, ws, "数据明细"); 
+            XLSX.writeFile(wb, `办公明细_${new Date().toLocaleDateString()}.xlsx`); 
+        }
     </script>
 </body>
 </html>
