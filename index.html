@@ -39,7 +39,7 @@
         .modal-active { display: flex; opacity: 1; pointer-events: auto; }
         body:not(.is-admin) .admin-only { display: none !important; }
 
-        /* 电脑端表格优化：干净清爽的经典样式 */
+        /* 电脑端表格优化 */
         @media (min-width: 769px) {
             .pc-table-container { overflow-x: auto; }
             .pc-table { width: 100%; border-collapse: collapse; }
@@ -61,7 +61,7 @@
             .remarks-cell { max-width: 250px; overflow: hidden; text-overflow: ellipsis; }
         }
 
-        /* 移动端神仙级卡片排版 */
+        /* 移动端卡片排版 */
         @media (max-width: 768px) {
             .responsive-table thead { display: none !important; }
             .responsive-table, .responsive-table tbody { display: block; width: 100%; }
@@ -109,17 +109,15 @@
 </head>
 <body class="min-h-screen">
 
-    <!-- 顶部进度条 -->
     <div id="topProgressBar" class="fixed top-0 left-0 h-[2px] bg-indigo-500 z-[100] transition-all duration-500 w-0 opacity-0"></div>
 
-    <!-- 顶部导航栏 -->
     <nav class="fixed top-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-md border-b border-slate-200 z-50 shadow-sm px-4 sm:px-6">
         <div class="max-w-7xl mx-auto h-full flex items-center justify-between">
             <div class="flex items-center flex-1 overflow-hidden">
                 <input type="file" id="logoUploadInput" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
                 <img id="companyLogo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdib3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjMGYxNzJhIj48cGF0aCBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMiIgZD0iTTE5IDIxVjVhMiAyIDAgMDAtMi0ySDdhMiAyIDAgMDAtMiAydjE2bTE0IDBoMm0tMiAwaC01bS05IDBIM20yIDBoNU05IDdoMW0tMSA0aDFtNC00aDFtLTEgNGgxbS01IDEwdi01YTEgMSAwIDAxMS0xaDJhMSAxIDAgMDExIDF2NW0tNCAwaDQiLz48L3N2Zz4=" 
                      alt="Logo" onclick="triggerLogoUpload()" class="h-9 w-9 sm:h-10 sm:w-10 mr-3 rounded-lg bg-slate-50 cursor-pointer border border-slate-100 p-1 shrink-0 transition-opacity hover:opacity-80">
-                <span id="companyName" class="font-bold text-lg sm:text-xl text-slate-800 truncate" contenteditable="false" onblur="saveCompanyName()">港坤公司办公用品管理系统</span>
+                <span id="companyName" class="font-bold text-lg sm:text-xl text-slate-800 truncate" contenteditable="false" onblur="saveCompanyName()">办公用品管理系统</span>
             </div>
             
             <div class="flex items-center gap-2 shrink-0">
@@ -134,16 +132,12 @@
         </div>
     </nav>
 
-    <!-- 主内容区 -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 pt-20 pb-12">
-        
-        <!-- 导航页签 -->
         <div class="flex border-b border-slate-200 mb-6 bg-slate-50/80 backdrop-blur z-30">
             <button onclick="switchTab('inventory')" id="tab-inventory" class="flex-1 sm:flex-none py-3 px-6 sm:px-8 border-b-2 border-indigo-600 text-indigo-600 font-semibold text-sm sm:text-base transition-colors">当前库存展示</button>
             <button onclick="switchTab('transactions')" id="tab-transactions" class="flex-1 sm:flex-none py-3 px-6 sm:px-8 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-medium text-sm sm:text-base transition-colors">出入库明细</button>
         </div>
 
-        <!-- 视图1: 库存展示 -->
         <div id="inventoryView">
             <div class="flex flex-col sm:flex-row justify-between mb-5 gap-4">
                 <div class="flex flex-1 items-center gap-3">
@@ -170,11 +164,12 @@
                         <tbody id="inventoryBody" class="divide-y divide-slate-100"></tbody>
                     </table>
                 </div>
+                <!-- 分页组件 -->
+                <div id="inventoryPagination"></div>
                 <div id="inventoryEmpty" class="hidden py-16 text-center text-slate-400 text-sm">没有找到相关物品</div>
             </div>
         </div>
 
-        <!-- 视图2: 明细记录 -->
         <div id="transactionsView" class="hidden">
             <div class="flex flex-col lg:flex-row justify-between mb-5 gap-4">
                 <div class="flex flex-col sm:flex-row gap-3">
@@ -210,17 +205,18 @@
                         <tbody id="tableBody" class="divide-y divide-slate-100"></tbody>
                     </table>
                 </div>
+                <!-- 分页组件 -->
+                <div id="transactionsPagination"></div>
                 <div id="emptyState" class="hidden py-16 text-center text-slate-400 text-sm">暂无匹配的出入库明细</div>
             </div>
         </div>
     </main>
 
-    <!-- 弹窗组件 -->
     <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 translate-y-10 opacity-0 transition-all duration-300 bg-slate-800 text-white px-6 py-3 rounded-xl text-sm font-medium shadow-xl z-[300] pointer-events-none flex items-center gap-2">
         <span id="toastMessage">操作成功</span>
     </div>
 
-    <!-- 权限验证 -->
+    <!-- 弹窗区 -->
     <div id="authModal" class="fixed inset-0 z-[100] modal-hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6">
             <div class="flex justify-between items-center mb-5">
@@ -230,18 +226,17 @@
             <div class="space-y-4">
                 <div id="oldPwdGroup" class="hidden">
                     <label class="block text-sm font-medium text-slate-600 mb-1">原密码</label>
-                    <input type="password" id="authOldPwd" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                    <input type="password" id="authOldPwd" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-600 mb-1">管理密码</label>
-                    <input type="password" id="authMainPwd" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="默认为 123456">
+                    <input type="password" id="authMainPwd" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500" placeholder="默认为 123456">
                 </div>
                 <button onclick="handleAuthSubmit()" class="w-full py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors mt-2">确 认</button>
             </div>
         </div>
     </div>
 
-    <!-- 录入记录 -->
     <div id="recordModal" class="fixed inset-0 z-50 modal-hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 flex flex-col overflow-hidden max-h-[90vh]">
             <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
@@ -292,7 +287,6 @@
         </div>
     </div>
 
-    <!-- 建档品类 -->
     <div id="categoryModal" class="fixed inset-0 z-50 modal-hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden">
             <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
@@ -324,7 +318,6 @@
         </div>
     </div>
 
-    <!-- 图片查看 -->
     <div id="imagePreviewModal" class="fixed inset-0 z-[100] modal-hidden items-center justify-center bg-slate-900/90 backdrop-blur-sm" onclick="closeImagePreview()">
         <img id="previewImage" src="" class="max-w-[90vw] max-h-[85vh] object-contain rounded-xl shadow-lg border border-white/20">
     </div>
@@ -347,6 +340,20 @@
 
         // 默认空图片 SVG
         const DEFAULT_IMG = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdib3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjZDJkNWRiIiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik00IDE2bDQuNTg2LTQuNTg2YTIgMiAwIDAxMi44MjggMEwxNiAxNm0tMi0ybDEuNTg2LTEuNTg2YTIgMiAwIDAxMi44MjggMEwyMCAxNG0tNi02aC4wMU02IDIwaDEyYTIgMiAwIDAwMi0yVjZhMiAyIDAgMDAtMi0ySDZhMiAyIDAgMDAtMiAydjEyYTIgMiAwIDAwMiAycyIvPjwvc3ZnPg==';
+
+        // === 分页状态变量 ===
+        let invPage = 1;
+        let transPage = 1;
+        let itemsPerPage = window.innerWidth <= 768 ? 4 : 10;
+        
+        window.addEventListener('resize', () => {
+            const n = window.innerWidth <= 768 ? 4 : 10;
+            if(n !== itemsPerPage) { 
+                itemsPerPage = n; 
+                invPage = 1; transPage = 1; 
+                updateTable(); renderInventory(); 
+            }
+        });
 
         /* 进度条动画 */
         function startBar() { const b = document.getElementById('topProgressBar'); if(b){ b.style.opacity = '1'; b.style.width = '60%'; } }
@@ -375,8 +382,7 @@
         async function syncFromCloud() {
             startBar();
             try {
-                // Fetch direct bin to avoid /latest errors if versioning is disabled
-                const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
                     headers: { 'X-Master-Key': JSONBIN_API_KEY }
                 });
                 if (!response.ok) throw new Error('网络异常');
@@ -445,14 +451,50 @@
             renderInventory();
         }
 
+        // ======================
+        // 分页组件渲染引擎
+        // ======================
+        function renderPagination(containerId, total, current, limit, callback) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '';
+            
+            if (total <= limit) return;
+
+            const totalPages = Math.ceil(total / limit);
+            const wrap = document.createElement('div');
+            wrap.className = 'flex items-center justify-between px-6 py-3 border-t border-slate-100 bg-slate-50/50 w-full rounded-b-2xl';
+
+            const infoStr = `<span class="text-sm text-slate-500 font-medium">共 ${total} 条, 当前第 ${current}/${totalPages} 页</span>`;
+            
+            const btnWrap = document.createElement('div');
+            btnWrap.className = 'flex gap-2';
+
+            const prevBtn = document.createElement('button');
+            prevBtn.innerText = '上一页';
+            prevBtn.className = `px-3 py-1.5 text-sm font-bold rounded-lg transition-colors ${current === 1 ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm'}`;
+            prevBtn.onclick = () => { if (current > 1) callback(current - 1); };
+            
+            const nextBtn = document.createElement('button');
+            nextBtn.innerText = '下一页';
+            nextBtn.className = `px-3 py-1.5 text-sm font-bold rounded-lg transition-colors ${current === totalPages ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm'}`;
+            nextBtn.onclick = () => { if (current < totalPages) callback(current + 1); };
+
+            btnWrap.appendChild(prevBtn);
+            btnWrap.appendChild(nextBtn);
+
+            wrap.innerHTML = infoStr;
+            wrap.appendChild(btnWrap);
+            container.appendChild(wrap);
+        }
+
         /* 渲染出入库明细 */
-        function renderTable(data) {
+        function renderTableDOM(data, startIndex) {
             const tbody = document.getElementById('tableBody');
             const emptyState = document.getElementById('emptyState');
             if(!tbody || !emptyState) return;
             
             tbody.innerHTML = '';
-            
             if (data.length === 0) { 
                 emptyState.classList.remove('hidden'); 
                 return; 
@@ -466,7 +508,7 @@
                 
                 tr.innerHTML = `
                     ${isAdmin ? `<td class="admin-only text-center"><input type="checkbox" onchange="toggleRow(${item.id})" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"></td>` : ''}
-                    <td class="td-index text-slate-500 text-sm" data-label="序号">${index + 1}</td>
+                    <td class="td-index text-slate-500 text-sm" data-label="序号">${startIndex + index + 1}</td>
                     <td class="td-date text-slate-600 text-sm" data-label="日期">${item.date}</td>
                     <td class="td-name font-semibold text-slate-900 text-sm" data-label="物品名称">${item.itemName}</td>
                     <td class="td-type" data-label="类型"><span class="px-2 py-1 rounded-md font-semibold text-xs ${typeStyle}">${item.type}</span></td>
@@ -495,28 +537,36 @@
             });
 
             const keys = Object.keys(productCatalog).filter(k => k.toLowerCase().includes(inventorySearchKey.toLowerCase()));
+            const total = keys.length;
 
-            if (keys.length === 0) {
+            if (total === 0) {
                 if (emptyEl) emptyEl.classList.remove('hidden');
                 if (countEl) countEl.innerText = `共 0 个品类`;
+                document.getElementById('inventoryPagination').innerHTML = '';
                 return;
             }
             if (emptyEl) emptyEl.classList.add('hidden');
 
-            keys.forEach(name => {
+            const maxPage = Math.ceil(total / itemsPerPage) || 1;
+            if (invPage > maxPage) invPage = maxPage;
+            
+            const start = (invPage - 1) * itemsPerPage;
+            const paginatedKeys = keys.slice(start, start + itemsPerPage);
+
+            paginatedKeys.forEach(name => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50 transition-colors';
                 const cur = (stockMap[name] || 0) + (productCatalog[name].stockOffset || 0);
                 const info = productCatalog[name];
                 
-                // 彻底修复图片裂图逻辑：过滤掉所有旧版失效本地路径
+                // 【核心修复】不仅读取云端/本地上传的图片，也默认尝试读取同名jpg，完美解决历史本地图片问题
                 let imgPath = info.image;
-                if (!imgPath || (!imgPath.startsWith('data:image') && !imgPath.startsWith('http'))) {
-                    imgPath = DEFAULT_IMG;
+                if (!imgPath) {
+                    imgPath = `images/${name}.jpg`;
                 }
                 
                 tr.innerHTML = `
-                    <td class="img-cell"><img src="${imgPath}" onerror="this.onerror=null;this.src='${DEFAULT_IMG}';" onclick="openImg('${imgPath}')" class="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded-lg border border-slate-200 bg-white cursor-zoom-in hover:opacity-80 transition-opacity"></td>
+                    <td class="img-cell"><img src="${imgPath}" onerror="this.onerror=null;this.src='${DEFAULT_IMG}';" onclick="openImg(this)" class="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded-lg border border-slate-200 bg-white cursor-zoom-in hover:opacity-80 transition-opacity"></td>
                     <td class="td-name font-semibold text-slate-900 text-sm sm:text-base" data-label="物品名称">${name}</td>
                     <td class="td-stock font-bold text-base sm:text-lg ${cur <= 5 ? 'text-rose-500' : 'text-slate-900'}" data-label="当前库存">${cur}</td>
                     <td class="td-unit text-slate-500 text-sm" data-label="单位">${info.unit}</td>
@@ -525,8 +575,53 @@
                 tbody.appendChild(tr);
             });
             
-            if(countEl) countEl.innerText = `共 ${keys.length} 个品类`;
+            if(countEl) countEl.innerText = `共 ${total} 个品类`;
+            
+            // 呼叫分页组件
+            renderPagination('inventoryPagination', total, invPage, itemsPerPage, (p) => {
+                invPage = p;
+                renderInventory();
+            });
         }
+
+        /* 提取并重构更新明细表格的逻辑，加上去除系统初始化过滤和分页 */
+        function updateTable() { 
+            const el = document.getElementById('searchInput');
+            const k = el ? el.value.toLowerCase() : ''; 
+            const sEl = document.getElementById('startDate');
+            const eEl = document.getElementById('endDate');
+            const s = sEl ? sEl.value : ''; 
+            const e = eEl ? eEl.value : ''; 
+
+            // 【核心要求修复】：彻底过滤掉隐藏掉系统初始化记录
+            let filtered = inventoryData.filter(i => i.handler !== '系统初始化');
+
+            if (k) {
+                filtered = filtered.filter(i => 
+                    (i.itemName && i.itemName.toLowerCase().includes(k)) || 
+                    (i.handler && i.handler.toLowerCase().includes(k)) || 
+                    (i.remarks && i.remarks.toLowerCase().includes(k))
+                );
+            }
+            if (s) filtered = filtered.filter(i => i.date >= s); 
+            if (e) filtered = filtered.filter(i => i.date <= e); 
+
+            const total = filtered.length;
+            const maxPage = Math.ceil(total / itemsPerPage) || 1;
+            if (transPage > maxPage) transPage = maxPage;
+            
+            const start = (transPage - 1) * itemsPerPage;
+            const paginated = filtered.slice(start, start + itemsPerPage);
+            
+            renderTableDOM(paginated, start); 
+            
+            // 呼叫分页组件
+            renderPagination('transactionsPagination', total, transPage, itemsPerPage, (p) => {
+                transPage = p;
+                updateTable();
+            });
+        }
+
 
         /* 上传与同步功能 */
         function triggerLogoUpload() { if(isAdmin) { const i = document.getElementById('logoUploadInput'); if(i) i.click(); } else showToast('请先登录管理员'); }
@@ -553,7 +648,6 @@
                 const img = new Image();
                 img.onload = () => {
                     const cvs = document.createElement('canvas');
-                    // 提升像素至120，防黑底处理
                     const MAX = 120; let w = img.width, h = img.height;
                     if (w > MAX) { h = Math.round((h * MAX) / w); w = MAX; }
                     cvs.width = w; cvs.height = h;
@@ -569,31 +663,12 @@
                 img.src = evt.target.result;
             };
             reader.readAsDataURL(f);
-            e.target.value = ''; // 重置 file input
+            e.target.value = ''; 
         }
 
         /* 基础控制函数 */
-        function saveCompanyName() { saveDataToCloud(); showToast('标题更新成功'); }
-        
-        function updateTable() { renderTable(inventoryData); }
-        
         function getTodayString() { return new Date().toISOString().split('T')[0]; }
         
-        let selectedIds = new Set();
-        function toggleRow(id) {
-            if(selectedIds.has(id)) selectedIds.delete(id);
-            else selectedIds.add(id);
-        }
-        
-        function handleItemNameInput() { 
-            const nEl = document.getElementById('formItemName');
-            const uEl = document.getElementById('formUnit');
-            if(nEl && uEl) {
-                const n = nEl.value; 
-                if(productCatalog[n]) uEl.value = productCatalog[n].unit; 
-            }
-        }
-
         function showToast(m) { 
             const t = document.getElementById('toast'); 
             const tm = document.getElementById('toastMessage');
@@ -624,28 +699,18 @@
         function handleInventorySearch() { 
             const el = document.getElementById('inventorySearchInput');
             if(el) inventorySearchKey = el.value; 
+            invPage = 1;
             renderInventory(); 
         }
         
         function handleSearch() { 
-            const el = document.getElementById('searchInput');
-            const k = el ? el.value.toLowerCase() : ''; 
-            renderTable(inventoryData.filter(i => 
-                (i.itemName && i.itemName.toLowerCase().includes(k)) || 
-                (i.handler && i.handler.toLowerCase().includes(k)) || 
-                (i.remarks && i.remarks.toLowerCase().includes(k))
-            )); 
+            transPage = 1;
+            updateTable();
         }
 
         function handleDateFilter() { 
-            const sEl = document.getElementById('startDate');
-            const eEl = document.getElementById('endDate');
-            const s = sEl ? sEl.value : ''; 
-            const e = eEl ? eEl.value : ''; 
-            let f = inventoryData; 
-            if(s) f = f.filter(i => i.date >= s); 
-            if(e) f = f.filter(i => i.date <= e); 
-            renderTable(f); 
+            transPage = 1;
+            updateTable();
         }
 
         function setAdminStatus(s) { 
@@ -758,7 +823,6 @@
             renderInventory(); 
             closeModal(); 
             
-            // 清空表单
             nameEl.value = '';
             qtyEl.value = '';
             if(remarksEl) remarksEl.value = '';
@@ -787,6 +851,12 @@
             showToast('建档成功'); 
         }
 
+        let selectedIds = new Set();
+        function toggleRow(id) {
+            if(selectedIds.has(id)) selectedIds.delete(id);
+            else selectedIds.add(id);
+        }
+
         async function deleteRow(id) { 
             if(!confirm('确定要删除这条记录吗？')) return; 
             inventoryData = inventoryData.filter(i => i.id !== id); 
@@ -796,17 +866,18 @@
         }
         
         async function delInv(n) { 
-            if(!confirm('确定要删除此品类？')) return; 
+            if(!confirm('确定要彻底删除此品类？')) return; 
             delete productCatalog[decodeURIComponent(n)]; 
             await saveDataToCloud(); 
             renderInventory(); 
         }
 
-        function openImg(s) { 
+        function openImg(imgEl) { 
             const modal = document.getElementById('imagePreviewModal');
             const img = document.getElementById('previewImage');
             if(modal && img) {
-                img.src = s; 
+                // 读取其实际显示的 src（包括兜底处理后的）
+                img.src = imgEl.src; 
                 modal.classList.replace('modal-hidden', 'modal-active'); 
             }
         }
@@ -815,6 +886,17 @@
             if(modal) modal.classList.replace('modal-active', 'modal-hidden'); 
         }
 
+        function saveCompanyName() { saveDataToCloud(); showToast('标题更新成功'); }
+        
+        function handleItemNameInput() { 
+            const nEl = document.getElementById('formItemName');
+            const uEl = document.getElementById('formUnit');
+            if(nEl && uEl) {
+                const n = nEl.value; 
+                if(productCatalog[n]) uEl.value = productCatalog[n].unit; 
+            }
+        }
+        
         function exportToExcel() { 
             const ws = XLSX.utils.json_to_sheet(inventoryData); 
             const wb = XLSX.utils.book_new(); 
