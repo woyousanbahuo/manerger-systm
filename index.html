@@ -9,6 +9,7 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
@@ -39,7 +40,6 @@
         .modal-active { display: flex; opacity: 1; pointer-events: auto; }
         body:not(.is-admin) .admin-only { display: none !important; }
 
-        /* 电脑端表格优化 */
         @media (min-width: 769px) {
             .pc-table-container { overflow-x: auto; }
             .pc-table { width: 100%; border-collapse: collapse; }
@@ -61,7 +61,6 @@
             .remarks-cell { max-width: 250px; overflow: hidden; text-overflow: ellipsis; }
         }
 
-        /* 移动端卡片排版 */
         @media (max-width: 768px) {
             .responsive-table thead { display: none !important; }
             .responsive-table, .responsive-table tbody { display: block; width: 100%; }
@@ -143,6 +142,9 @@
                 <div class="flex flex-1 items-center gap-3">
                     <input type="text" id="inventorySearchInput" placeholder="搜索物品名称..." class="w-full sm:w-72 px-4 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-medium shadow-sm focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-all" oninput="handleInventorySearch()">
                     <span id="inventoryCountDisplay" class="hidden sm:inline-block text-xs font-medium text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">共 0 个品类</span>
+                    <button id="lowStockWarningBtn" onclick="dismissWarning()" class="hidden items-center gap-1 bg-rose-50 text-rose-600 px-3 py-1.5 rounded-lg border border-rose-100 shadow-sm text-xs font-bold hover:bg-rose-100 transition-colors animate-pulse">
+                        ⚠️ <span id="lowStockCount">0</span> 告急 ✕
+                    </button>
                 </div>
                 <button onclick="openCategoryModal()" class="admin-only w-full sm:w-auto px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-medium text-sm shadow-sm hover:bg-indigo-700 transition-colors flex items-center justify-center">
                     直接建档入库
@@ -156,7 +158,9 @@
                             <tr>
                                 <th class="w-20">物品图片</th>
                                 <th>物品名称</th>
-                                <th>当前库存</th>
+                                <th class="cursor-pointer hover:bg-slate-100 select-none transition-colors" onclick="toggleStockSort()" title="点击切换排序">
+                                    当前库存 <span id="stockSortIcon" class="inline-block ml-1 text-slate-400">↕</span>
+                                </th>
                                 <th>单位</th>
                                 <th class="admin-only">操作</th>
                             </tr>
@@ -182,7 +186,7 @@
                 </div>
                 <div class="flex gap-2 admin-only">
                     <button onclick="openModal()" class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm shadow-sm hover:bg-blue-700 transition-colors">入/出库记录</button>
-                    <button onclick="exportToExcel()" class="px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm shadow-sm hover:bg-emerald-700 transition-colors">导出 Excel</button>
+                    <button onclick="openExportModal()" class="px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm shadow-sm hover:bg-emerald-700 transition-colors">导出 Excel</button>
                 </div>
             </div>
             <div class="bg-white sm:rounded-2xl sm:shadow-sm border border-slate-200 overflow-hidden">
@@ -216,7 +220,6 @@
         <span id="toastMessage">操作成功</span>
     </div>
 
-    <!-- 弹窗区 -->
     <div id="authModal" class="fixed inset-0 z-[100] modal-hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6">
             <div class="flex justify-between items-center mb-5">
@@ -259,25 +262,27 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">物品名称 <span class="text-rose-500">*</span></label>
-                    <input type="text" id="formItemName" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500" oninput="handleItemNameInput()" placeholder="例如：A4打印纸">
+                    <input type="text" id="formItemName" list="itemNameList" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500" oninput="handleItemNameInput()" onkeydown="handleEnterKey(event, saveRecord)" placeholder="例如：A4打印纸">
+                    <datalist id="itemNameList"></datalist>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">数量 <span class="text-rose-500">*</span></label>
-                        <input type="number" id="formQuantity" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-bold text-indigo-600 focus:border-indigo-500">
+                        <input type="number" id="formQuantity" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-bold text-indigo-600 focus:border-indigo-500" onkeydown="handleEnterKey(event, saveRecord)">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">单位 <span class="text-rose-500">*</span></label>
-                        <input type="text" id="formUnit" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500" placeholder="包 / 个 / 支">
+                        <input type="text" id="formUnit" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500" placeholder="包 / 个 / 支" onkeydown="handleEnterKey(event, saveRecord)">
                     </div>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">经办人 <span class="text-rose-500">*</span></label>
-                    <input type="text" id="formHandler" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500">
+                    <input type="text" id="formHandler" list="handlerList" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500" onkeydown="handleEnterKey(event, saveRecord)">
+                    <datalist id="handlerList"></datalist>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">备注说明</label>
-                    <textarea id="formRemarks" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500" placeholder="选填..."></textarea>
+                    <textarea id="formRemarks" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500" placeholder="选填..." onkeydown="handleEnterKey(event, saveRecord)"></textarea>
                 </div>
             </div>
             <div class="px-6 py-4 bg-slate-50 border-t flex justify-end gap-3">
@@ -294,19 +299,19 @@
                 <button onclick="closeCategoryModal()" class="text-slate-400 hover:text-slate-600">✕</button>
             </div>
             <div class="p-6 space-y-4">
-                <form id="categoryForm" class="space-y-4">
+                <form id="categoryForm" class="space-y-4" onsubmit="event.preventDefault();">
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">物品名称 <span class="text-rose-500">*</span></label>
-                        <input type="text" id="catItemName" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500">
+                        <input type="text" id="catItemName" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500" onkeydown="handleEnterKey(event, saveCategory)">
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1">单位 <span class="text-rose-500">*</span></label>
-                            <input type="text" id="catUnit" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500">
+                            <input type="text" id="catUnit" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500" onkeydown="handleEnterKey(event, saveCategory)">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1">初始库存</label>
-                            <input type="number" id="catStock" value="0" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-bold focus:border-indigo-500">
+                            <input type="number" id="catStock" value="0" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-bold focus:border-indigo-500" onkeydown="handleEnterKey(event, saveCategory)">
                         </div>
                     </div>
                 </form>
@@ -342,6 +347,61 @@
         </div>
     </div>
 
+    <div id="editNameModal" class="fixed inset-0 z-50 modal-hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden">
+            <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-slate-800">修改物品名称</h3>
+                <button onclick="closeEditNameModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">原名称</label>
+                    <input type="text" id="editNameOld" disabled class="w-full px-3 py-2 border border-slate-200 bg-slate-50 rounded-lg text-sm text-slate-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">新名称 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="editNameNew" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500" onkeydown="handleEnterKey(event, saveEditedName)">
+                </div>
+                <p class="text-xs text-rose-500">注意：这会同时修改历史记录中的对应物品名称。</p>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t flex justify-end gap-3">
+                <button onclick="closeEditNameModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-600 bg-white hover:bg-slate-50">取消</button>
+                <button onclick="saveEditedName()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 shadow-sm">确认修改</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="exportModal" class="fixed inset-0 z-50 modal-hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden">
+            <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-slate-800">导出 Excel</h3>
+                <button onclick="closeExportModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">时间范围 (可选)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="date" id="exportStart" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500">
+                        <span class="text-slate-400">-</span>
+                        <input type="date" id="exportEnd" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">操作类型 (可选)</label>
+                    <select id="exportType" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500 bg-white">
+                        <option value="">全部</option>
+                        <option value="入库">仅入库</option>
+                        <option value="出库">仅出库</option>
+                    </select>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t flex justify-end gap-3">
+                <button onclick="closeExportModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-600 bg-white hover:bg-slate-50">取消</button>
+                <button onclick="executeExport()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 shadow-sm">确认导出</button>
+            </div>
+        </div>
+    </div>
+
     <div id="imagePreviewModal" class="fixed inset-0 z-[100] modal-hidden items-center justify-center bg-slate-900/90 backdrop-blur-sm" onclick="closeImagePreview()">
         <img id="previewImage" src="" class="max-w-[90vw] max-h-[85vh] object-contain rounded-xl shadow-lg border border-white/20">
     </div>
@@ -365,6 +425,10 @@
         let currentEditStockItem = '';
         let currentEditStockHistoryTotal = 0;
 
+        let stockSortOrder = 'none'; // 'none', 'asc', 'desc'
+        let warningDismissed = false;
+        let oldItemNameForEdit = '';
+
         // 默认空图片 SVG
         const DEFAULT_IMG = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdib3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjZDJkNWRiIiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik00IDE2bDQuNTg2LTQuNTg2YTIgMiAwIDAxMi44MjggMEwxNiAxNm0tMi0ybDEuNTg2LTEuNTg2YTIgMiAwIDAxMi44MjggMEwyMCAxNG0tNi02aC4wMU02IDIwaDEyYTIgMiAwIDAwMi0yVjZhMiAyIDAgMDAtMi0ySDZhMiAyIDAgMDAtMiAydjEyYTIgMiAwIDAwMiAycyIvPjwvc3ZnPg==';
 
@@ -372,6 +436,13 @@
         let invPage = 1;
         let transPage = 1;
         let itemsPerPage = window.innerWidth <= 768 ? 4 : 10;
+        
+        function handleEnterKey(event, callback) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                callback();
+            }
+        }
         
         window.addEventListener('resize', () => {
             const n = window.innerWidth <= 768 ? 4 : 10;
@@ -554,6 +625,7 @@
             const tbody = document.getElementById('inventoryBody');
             const countEl = document.getElementById('inventoryCountDisplay');
             const emptyEl = document.getElementById('inventoryEmpty');
+            const warningBtn = document.getElementById('lowStockWarningBtn');
             if(!tbody) return;
             
             tbody.innerHTML = '';
@@ -563,7 +635,33 @@
                 stockMap[i.itemName] += (i.type === '入库' ? i.quantity : -i.quantity);
             });
 
-            const keys = Object.keys(productCatalog).filter(k => k.toLowerCase().includes(inventorySearchKey.toLowerCase()));
+            let keys = Object.keys(productCatalog).filter(k => k.toLowerCase().includes(inventorySearchKey.toLowerCase()));
+            
+            let lowStockCount = 0;
+            Object.keys(productCatalog).forEach(k => {
+                const cur = (stockMap[k] || 0) + (productCatalog[k].stockOffset || 0);
+                if(cur <= 5) lowStockCount++;
+            });
+            
+            if(warningBtn) {
+                if(lowStockCount > 0 && !warningDismissed) {
+                    warningBtn.classList.remove('hidden');
+                    warningBtn.classList.add('flex');
+                    document.getElementById('lowStockCount').innerText = lowStockCount;
+                } else {
+                    warningBtn.classList.add('hidden');
+                    warningBtn.classList.remove('flex');
+                }
+            }
+            
+            if (stockSortOrder !== 'none') {
+                keys.sort((a, b) => {
+                    const curA = (stockMap[a] || 0) + (productCatalog[a].stockOffset || 0);
+                    const curB = (stockMap[b] || 0) + (productCatalog[b].stockOffset || 0);
+                    return stockSortOrder === 'asc' ? curA - curB : curB - curA;
+                });
+            }
+
             const total = keys.length;
 
             if (total === 0) {
@@ -594,7 +692,7 @@
                 
                 tr.innerHTML = `
                     <td class="img-cell"><img src="${imgPath}" onerror="this.onerror=null;this.src='${DEFAULT_IMG}';" onclick="openImg(this)" class="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded-lg border border-slate-200 bg-white cursor-zoom-in hover:opacity-80 transition-opacity"></td>
-                    <td class="td-name font-semibold text-slate-900 text-sm sm:text-base" data-label="物品名称">${name}</td>
+                    <td class="td-name font-semibold text-sm sm:text-base ${isAdmin ? 'cursor-pointer text-indigo-600 hover:underline' : 'text-slate-900'}" data-label="物品名称" ${isAdmin ? `onclick="openEditNameModal('${encodeURIComponent(name)}')" title="点击修改名称"` : ''}>${name}</td>
                     <td class="td-stock font-bold text-base sm:text-lg ${cur <= 5 ? 'text-rose-500' : 'text-slate-900'} ${isAdmin ? 'cursor-pointer hover:underline' : ''}" data-label="当前库存" ${isAdmin ? `onclick="openEditStockModal('${encodeURIComponent(name)}', ${stockMap[name] || 0}, ${cur})"` : ''} title="${isAdmin ? '点击校准库存' : ''}">${cur}</td>
                     <td class="td-unit text-slate-500 text-sm" data-label="单位">${info.unit}</td>
                     ${isAdmin ? `<td class="action-cell"><button onclick="upImg('${encodeURIComponent(name)}')" class="text-indigo-600 font-medium text-sm mr-4 hover:underline">更换图片</button><button onclick="delInv('${encodeURIComponent(name)}')" class="text-rose-500 font-medium text-sm hover:underline">下架</button></td>` : ''}
@@ -695,6 +793,28 @@
         /* 基础控制函数 */
         function getTodayString() { return new Date().toISOString().split('T')[0]; }
         
+        function toggleStockSort() {
+            const icon = document.getElementById('stockSortIcon');
+            if (stockSortOrder === 'none') {
+                stockSortOrder = 'desc';
+                if(icon) icon.innerText = '↓';
+            } else if (stockSortOrder === 'desc') {
+                stockSortOrder = 'asc';
+                if(icon) icon.innerText = '↑';
+            } else {
+                stockSortOrder = 'none';
+                if(icon) icon.innerText = '↕';
+            }
+            invPage = 1;
+            renderInventory();
+        }
+        
+        function dismissWarning() {
+            warningDismissed = true;
+            const btn = document.getElementById('lowStockWarningBtn');
+            if(btn) { btn.classList.add('hidden'); btn.classList.remove('flex'); }
+        }
+
         function showToast(m) { 
             const t = document.getElementById('toast'); 
             const tm = document.getElementById('toastMessage');
@@ -800,6 +920,38 @@
         function openModal() { 
             const modal = document.getElementById('recordModal');
             if(modal) modal.classList.replace('modal-hidden', 'modal-active'); 
+            
+            // 填充物品名称 datalist (按频率排序)
+            const nameCounts = {};
+            inventoryData.forEach(r => { nameCounts[r.itemName] = (nameCounts[r.itemName] || 0) + 1; });
+            const sortedNames = Object.keys(productCatalog).sort((a, b) => (nameCounts[b] || 0) - (nameCounts[a] || 0));
+            
+            const nameList = document.getElementById('itemNameList');
+            if(nameList) {
+                nameList.innerHTML = '';
+                sortedNames.forEach(n => {
+                    const opt = document.createElement('option');
+                    opt.value = n;
+                    nameList.appendChild(opt);
+                });
+            }
+            
+            // 填充经办人 datalist (按频率排序)
+            const handlerCounts = {};
+            inventoryData.forEach(r => { 
+                if(r.handler && r.handler !== '系统初始化') handlerCounts[r.handler] = (handlerCounts[r.handler] || 0) + 1; 
+            });
+            const sortedHandlers = Object.keys(handlerCounts).sort((a, b) => handlerCounts[b] - handlerCounts[a]);
+            
+            const handlerList = document.getElementById('handlerList');
+            if(handlerList) {
+                handlerList.innerHTML = '';
+                sortedHandlers.forEach(h => {
+                    const opt = document.createElement('option');
+                    opt.value = h;
+                    handlerList.appendChild(opt);
+                });
+            }
         }
         function closeModal() { 
             const modal = document.getElementById('recordModal');
@@ -851,6 +1003,47 @@
             showToast('库存校准成功');
         }
 
+        function openEditNameModal(encodedName) {
+            oldItemNameForEdit = decodeURIComponent(encodedName);
+            const oldEl = document.getElementById('editNameOld');
+            const newEl = document.getElementById('editNameNew');
+            if(oldEl) oldEl.value = oldItemNameForEdit;
+            if(newEl) newEl.value = oldItemNameForEdit;
+            
+            const modal = document.getElementById('editNameModal');
+            if (modal) modal.classList.replace('modal-hidden', 'modal-active');
+        }
+
+        function closeEditNameModal() {
+            const modal = document.getElementById('editNameModal');
+            if (modal) modal.classList.replace('modal-active', 'modal-hidden');
+        }
+
+        async function saveEditedName() {
+            const newEl = document.getElementById('editNameNew');
+            if(!newEl) return;
+            const newName = newEl.value.trim();
+            
+            if(!newName) return showToast('新名称不能为空');
+            if(newName === oldItemNameForEdit) return closeEditNameModal();
+            if(productCatalog[newName]) return showToast('该名称已存在，请使用其他名称');
+
+            productCatalog[newName] = productCatalog[oldItemNameForEdit];
+            delete productCatalog[oldItemNameForEdit];
+            
+            inventoryData.forEach(item => {
+                if(item.itemName === oldItemNameForEdit) {
+                    item.itemName = newName;
+                }
+            });
+
+            await saveDataToCloud();
+            updateTable();
+            renderInventory();
+            closeEditNameModal();
+            showToast('物品名称修改成功');
+        }
+
         async function saveRecord() {
             const nameEl = document.getElementById('formItemName');
             const qtyEl = document.getElementById('formQuantity');
@@ -866,6 +1059,10 @@
             const qty = parseInt(qtyEl.value);
             
             if(!name || isNaN(qty)) return showToast('必填项不能为空');
+            
+            if(!productCatalog[name]) {
+                return showToast('只能选择库存已建档的物品名称');
+            }
             
             const item = { 
                 id: Date.now(), 
@@ -960,11 +1157,38 @@
             }
         }
         
-        function exportToExcel() { 
-            const ws = XLSX.utils.json_to_sheet(inventoryData); 
+        function openExportModal() {
+            const modal = document.getElementById('exportModal');
+            if(modal) modal.classList.replace('modal-hidden', 'modal-active');
+            
+            document.getElementById('exportStart').value = '';
+            document.getElementById('exportEnd').value = '';
+            document.getElementById('exportType').value = '';
+        }
+
+        function closeExportModal() {
+            const modal = document.getElementById('exportModal');
+            if(modal) modal.classList.replace('modal-active', 'modal-hidden');
+        }
+
+        function executeExport() {
+            const s = document.getElementById('exportStart').value;
+            const e = document.getElementById('exportEnd').value;
+            const t = document.getElementById('exportType').value;
+            
+            let dataToExport = inventoryData;
+            if (s) dataToExport = dataToExport.filter(i => i.date >= s);
+            if (e) dataToExport = dataToExport.filter(i => i.date <= e);
+            if (t) dataToExport = dataToExport.filter(i => i.type === t);
+
+            if (dataToExport.length === 0) return showToast('所选范围内没有数据可导出');
+
+            const ws = XLSX.utils.json_to_sheet(dataToExport); 
             const wb = XLSX.utils.book_new(); 
             XLSX.utils.book_append_sheet(wb, ws, "数据明细"); 
             XLSX.writeFile(wb, `办公明细_${new Date().toLocaleDateString()}.xlsx`); 
+            closeExportModal();
+            showToast('导出成功');
         }
     </script>
 </body>
