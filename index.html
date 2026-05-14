@@ -318,6 +318,30 @@
         </div>
     </div>
 
+    <div id="editStockModal" class="fixed inset-0 z-50 modal-hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden">
+            <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-slate-800">直接修改库存</h3>
+                <button onclick="closeEditStockModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">物品名称</label>
+                    <input type="text" id="editStockItemName" disabled class="w-full px-3 py-2 border border-slate-200 bg-slate-50 rounded-lg text-sm text-slate-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">实际当前库存 <span class="text-rose-500">*</span></label>
+                    <input type="number" id="editStockNewVal" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-bold text-indigo-600 focus:border-indigo-500">
+                </div>
+                <p class="text-xs text-slate-500">注意：此操作不会生成出入库明细记录，仅校准当前显示库存。</p>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t flex justify-end gap-3">
+                <button onclick="closeEditStockModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-600 bg-white hover:bg-slate-50">取消</button>
+                <button onclick="saveEditedStock()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 shadow-sm">确认修改</button>
+            </div>
+        </div>
+    </div>
+
     <div id="imagePreviewModal" class="fixed inset-0 z-[100] modal-hidden items-center justify-center bg-slate-900/90 backdrop-blur-sm" onclick="closeImagePreview()">
         <img id="previewImage" src="" class="max-w-[90vw] max-h-[85vh] object-contain rounded-xl shadow-lg border border-white/20">
     </div>
@@ -337,6 +361,9 @@
         let authMode = 'login';
         let inventorySearchKey = '';
         const isCloudEnabled = JSONBIN_BIN_ID && JSONBIN_BIN_ID !== '69e1e417856a682189430290'; 
+
+        let currentEditStockItem = '';
+        let currentEditStockHistoryTotal = 0;
 
         // 默认空图片 SVG
         const DEFAULT_IMG = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdib3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjZDJkNWRiIiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik00IDE2bDQuNTg2LTQuNTg2YTIgMiAwIDAxMi44MjggMEwxNiAxNm0tMi0ybDEuNTg2LTEuNTg2YTIgMiAwIDAxMi44MjggMEwyMCAxNG0tNi02aC4wMU02IDIwaDEyYTIgMiAwIDAwMi0yVjZhMiAyIDAgMDAtMi0ySDZhMiAyIDAgMDAtMiAydjEyYTIgMiAwIDAwMiAycyIvPjwvc3ZnPg==';
@@ -568,7 +595,7 @@
                 tr.innerHTML = `
                     <td class="img-cell"><img src="${imgPath}" onerror="this.onerror=null;this.src='${DEFAULT_IMG}';" onclick="openImg(this)" class="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded-lg border border-slate-200 bg-white cursor-zoom-in hover:opacity-80 transition-opacity"></td>
                     <td class="td-name font-semibold text-slate-900 text-sm sm:text-base" data-label="物品名称">${name}</td>
-                    <td class="td-stock font-bold text-base sm:text-lg ${cur <= 5 ? 'text-rose-500' : 'text-slate-900'}" data-label="当前库存">${cur}</td>
+                    <td class="td-stock font-bold text-base sm:text-lg ${cur <= 5 ? 'text-rose-500' : 'text-slate-900'} ${isAdmin ? 'cursor-pointer hover:underline' : ''}" data-label="当前库存" ${isAdmin ? `onclick="openEditStockModal('${encodeURIComponent(name)}', ${stockMap[name] || 0}, ${cur})"` : ''} title="${isAdmin ? '点击校准库存' : ''}">${cur}</td>
                     <td class="td-unit text-slate-500 text-sm" data-label="单位">${info.unit}</td>
                     ${isAdmin ? `<td class="action-cell"><button onclick="upImg('${encodeURIComponent(name)}')" class="text-indigo-600 font-medium text-sm mr-4 hover:underline">更换图片</button><button onclick="delInv('${encodeURIComponent(name)}')" class="text-rose-500 font-medium text-sm hover:underline">下架</button></td>` : ''}
                 `;
@@ -621,7 +648,6 @@
                 updateTable();
             });
         }
-
 
         /* 上传与同步功能 */
         function triggerLogoUpload() { if(isAdmin) { const i = document.getElementById('logoUploadInput'); if(i) i.click(); } else showToast('请先登录管理员'); }
@@ -786,6 +812,43 @@
         function closeCategoryModal() { 
             const modal = document.getElementById('categoryModal');
             if(modal) modal.classList.replace('modal-active', 'modal-hidden'); 
+        }
+
+        function openEditStockModal(encodedName, historyTotal, currentTotal) {
+            currentEditStockItem = decodeURIComponent(encodedName);
+            currentEditStockHistoryTotal = historyTotal;
+            
+            const nameEl = document.getElementById('editStockItemName');
+            const valEl = document.getElementById('editStockNewVal');
+            
+            if (nameEl) nameEl.value = currentEditStockItem;
+            if (valEl) valEl.value = currentTotal;
+            
+            const modal = document.getElementById('editStockModal');
+            if (modal) modal.classList.replace('modal-hidden', 'modal-active');
+        }
+
+        function closeEditStockModal() {
+            const modal = document.getElementById('editStockModal');
+            if (modal) modal.classList.replace('modal-active', 'modal-hidden');
+        }
+
+        async function saveEditedStock() {
+            const valEl = document.getElementById('editStockNewVal');
+            if (!valEl) return;
+            
+            const newVal = parseInt(valEl.value);
+            if (isNaN(newVal)) {
+                return showToast('请输入有效的库存数值');
+            }
+
+            // 根据目标值和历史值的差，反算新的 Offset（不改变历史出入库明细记录）
+            productCatalog[currentEditStockItem].stockOffset = newVal - currentEditStockHistoryTotal;
+            
+            await saveDataToCloud();
+            renderInventory();
+            closeEditStockModal();
+            showToast('库存校准成功');
         }
 
         async function saveRecord() {
