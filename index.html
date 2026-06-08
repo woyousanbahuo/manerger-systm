@@ -186,7 +186,7 @@
                 </div>
                 <div class="flex gap-2 admin-only">
                     <button onclick="openModal()" class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm shadow-sm hover:bg-blue-700 transition-colors">入/出库记录</button>
-                    <button onclick="openExportModal()" class="px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm shadow-sm hover:bg-emerald-700 transition-colors">导出 Excel</button>
+                    <button onclick="openExportModal()" class="px-4 py-2.5 bg-emerald-600 text-white rounded-lg font-medium text-sm shadow-sm hover:bg-emerald-700 transition-colors">导出 Excel</button>
                 </div>
             </div>
             <div class="bg-white sm:rounded-2xl sm:shadow-sm border border-slate-200 overflow-hidden">
@@ -1176,14 +1176,59 @@
             const e = document.getElementById('exportEnd').value;
             const t = document.getElementById('exportType').value;
             
-            let dataToExport = inventoryData;
+            // 过滤系统初始化记录
+            let dataToExport = inventoryData.filter(i => i.handler !== '系统初始化');
+            
             if (s) dataToExport = dataToExport.filter(i => i.date >= s);
             if (e) dataToExport = dataToExport.filter(i => i.date <= e);
             if (t) dataToExport = dataToExport.filter(i => i.type === t);
 
             if (dataToExport.length === 0) return showToast('所选范围内没有数据可导出');
 
-            const ws = XLSX.utils.json_to_sheet(dataToExport); 
+            // 计算当前总库存（用于导出“剩余数量”）
+            let stockMap = {};
+            inventoryData.forEach(i => {
+                if (!stockMap[i.itemName]) stockMap[i.itemName] = 0;
+                stockMap[i.itemName] += (i.type === '入库' ? i.quantity : -i.quantity);
+            });
+
+            // 格式化导出数据，根据操作类型映射自定义表头
+            const formattedData = dataToExport.map(item => {
+                const currentStock = (stockMap[item.itemName] || 0) + (productCatalog[item.itemName]?.stockOffset || 0);
+                
+                if (t === '出库') {
+                    return {
+                        "物品名称": item.itemName,
+                        "出库数量": item.quantity,
+                        "出库时间": item.date,
+                        "领用人": item.handler,
+                        "剩余数量": currentStock,
+                        "备注": item.remarks || ''
+                    };
+                } else if (t === '入库') {
+                    return {
+                        "物品名称": item.itemName,
+                        "入库数量": item.quantity,
+                        "入库时间": item.date,
+                        "经办人": item.handler,
+                        "剩余数量": currentStock,
+                        "备注": item.remarks || ''
+                    };
+                } else {
+                    // 全部混合导出的通用表头
+                    return {
+                        "物品名称": item.itemName,
+                        "操作类型": item.type,
+                        "变动数量": item.quantity,
+                        "操作时间": item.date,
+                        "经办/领用人": item.handler,
+                        "剩余数量": currentStock,
+                        "备注": item.remarks || ''
+                    };
+                }
+            });
+
+            const ws = XLSX.utils.json_to_sheet(formattedData); 
             const wb = XLSX.utils.book_new(); 
             XLSX.utils.book_append_sheet(wb, ws, "数据明细"); 
             XLSX.writeFile(wb, `办公明细_${new Date().toLocaleDateString()}.xlsx`); 
