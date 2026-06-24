@@ -284,11 +284,6 @@
                     <label class="block text-sm font-medium text-slate-700 mb-1">备注说明</label>
                     <textarea id="formRemarks" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-indigo-500" placeholder="选填..." onkeydown="handleEnterKey(event, saveRecord)"></textarea>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">物品图片</label>
-                    <input type="file" id="formImage" accept="image/*" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:border-indigo-500">
-                    <p class="text-xs text-slate-500 mt-1">图片会自动压缩后随库存数据同步到当前云端。</p>
-                </div>
             </div>
             <div class="px-6 py-4 bg-slate-50 border-t flex justify-end gap-3">
                 <button onclick="closeModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-600 bg-white hover:bg-slate-50">取消</button>
@@ -318,10 +313,6 @@
                             <label class="block text-sm font-medium text-slate-700 mb-1">初始库存</label>
                             <input type="number" id="catStock" value="0" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-bold focus:border-indigo-500" onkeydown="handleEnterKey(event, saveCategory)">
                         </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">物品图片</label>
-                        <input type="file" id="catImage" accept="image/*" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:border-indigo-500">
                     </div>
                 </form>
             </div>
@@ -470,49 +461,6 @@
             setTimeout(() => { b.style.opacity = '0'; setTimeout(() => { b.style.width = '0%'; b.style.backgroundColor = '#6366f1'; }, 300); }, 500); 
         }
 
-        function getCloudStorePayload() {
-            return {
-                inventoryData, productCatalog,
-                adminPassword: localStorage.getItem('adminPassword') || '123456',
-                companyName: document.getElementById('companyName') ? document.getElementById('companyName').innerText : '管理系统',
-                companyLogo: localStorage.getItem('companyLogo') || ''
-            };
-        }
-
-        function readFileAsDataUrl(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = evt => resolve(evt.target.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-        }
-
-        async function compressImageToDataUrl(file, maxWidth = 120, quality = 0.6) {
-            const dataUrl = await readFileAsDataUrl(file);
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.onload = () => {
-                    const cvs = document.createElement('canvas');
-                    let w = img.width;
-                    let h = img.height;
-                    if (w > maxWidth) {
-                        h = Math.round((h * maxWidth) / w);
-                        w = maxWidth;
-                    }
-                    cvs.width = w;
-                    cvs.height = h;
-                    const ctx = cvs.getContext('2d');
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(0, 0, w, h);
-                    ctx.drawImage(img, 0, 0, w, h);
-                    resolve(cvs.toDataURL('image/jpeg', quality));
-                };
-                img.onerror = reject;
-                img.src = dataUrl;
-            });
-        }
-
         /* 启动流程 */
         document.addEventListener('DOMContentLoaded', () => {
             const savedLogo = localStorage.getItem('companyLogo');
@@ -553,8 +501,8 @@
                             localStorage.setItem('companyLogo', store.companyLogo);
                         }
                     }
-                    saveLocal();
-                    updateTable();
+                    saveLocal(); 
+                    updateTable(); 
                     renderInventory();
                     const syncEl = document.getElementById('syncStatus');
                     if (syncEl) syncEl.classList.remove('hidden');
@@ -565,7 +513,13 @@
 
         async function saveDataToCloud() {
             saveLocal();
-            const dataToSave = getCloudStorePayload();
+            const dataToSave = {
+                inventoryData, productCatalog,
+                adminPassword: localStorage.getItem('adminPassword') || '123456',
+                companyName: document.getElementById('companyName') ? document.getElementById('companyName').innerText : '管理系统',
+                companyLogo: localStorage.getItem('companyLogo') || ''
+            };
+            
             const size = new Blob([JSON.stringify(dataToSave)]).size;
             if (size > 100000) { showToast('⚠️ 云端空间接近上限，请控制图片数量'); }
 
@@ -811,20 +765,29 @@
 
         let upTarget = '';
         function upImg(n) { upTarget = decodeURIComponent(n); const i = document.getElementById('imageUploadInput'); if(i) i.click(); }
-        async function handleImageUpload(e) {
+        function handleImageUpload(e) {
             const f = e.target.files[0]; if (!f) return;
-            try {
-                startBar();
-                productCatalog[upTarget].image = await compressImageToDataUrl(f, 120, 0.6);
-                await saveDataToCloud();
-                renderInventory();
-                showToast('图片更新成功');
-            } catch (err) {
-                endBar(true);
-                showToast('图片上传失败');
-            } finally {
-                e.target.value = '';
-            }
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                const img = new Image();
+                img.onload = () => {
+                    const cvs = document.createElement('canvas');
+                    const MAX = 120; let w = img.width, h = img.height;
+                    if (w > MAX) { h = Math.round((h * MAX) / w); w = MAX; }
+                    cvs.width = w; cvs.height = h;
+                    const ctx = cvs.getContext('2d'); 
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(0, 0, w, h);
+                    ctx.drawImage(img, 0, 0, w, h);
+                    productCatalog[upTarget].image = cvs.toDataURL('image/jpeg', 0.6);
+                    saveDataToCloud(); 
+                    renderInventory(); 
+                    showToast('图片更新成功');
+                };
+                img.src = evt.target.result;
+            };
+            reader.readAsDataURL(f);
+            e.target.value = ''; 
         }
 
         /* 基础控制函数 */
@@ -1089,25 +1052,22 @@
             const dateEl = document.getElementById('formDate');
             const handlerEl = document.getElementById('formHandler');
             const remarksEl = document.getElementById('formRemarks');
-            const imageEl = document.getElementById('formImage');
 
             if(!nameEl || !qtyEl || !unitEl) return;
 
             const name = nameEl.value.trim();
             const qty = parseInt(qtyEl.value);
-            const recordType = typeEl ? typeEl.value : '入库';
             
             if(!name || isNaN(qty)) return showToast('必填项不能为空');
             
-            if(!productCatalog[name] && recordType !== '入库') {
+            if(!productCatalog[name]) {
                 return showToast('只能选择库存已建档的物品名称');
             }
-            if(!productCatalog[name]) productCatalog[name] = { unit: unitEl.value, stockOffset: 0, image: null };
             
             const item = { 
                 id: Date.now(), 
                 itemName: name, 
-                type: recordType, 
+                type: typeEl ? typeEl.value : '入库', 
                 quantity: qty, 
                 unit: unitEl.value, 
                 date: dateEl ? dateEl.value : getTodayString(), 
@@ -1115,11 +1075,8 @@
                 remarks: remarksEl ? remarksEl.value : '' 
             };
             
-            if (imageEl && imageEl.files && imageEl.files[0]) {
-                productCatalog[name].image = await compressImageToDataUrl(imageEl.files[0], 120, 0.6);
-            }
-
             inventoryData.unshift(item); 
+            if(!productCatalog[name]) productCatalog[name] = { unit: item.unit, stockOffset: 0 };
             
             await saveDataToCloud(); 
             updateTable(); 
@@ -1129,7 +1086,6 @@
             nameEl.value = '';
             qtyEl.value = '';
             if(remarksEl) remarksEl.value = '';
-            if(imageEl) imageEl.value = '';
             
             showToast('保存成功'); 
         }
@@ -1138,7 +1094,6 @@
             const nEl = document.getElementById('catItemName');
             const uEl = document.getElementById('catUnit');
             const sEl = document.getElementById('catStock');
-            const imageEl = document.getElementById('catImage');
             
             if(!nEl || !uEl) return;
             const n = nEl.value.trim();
@@ -1146,16 +1101,12 @@
             
             if(!n || !u) return showToast('请填写品名与单位');
             
-            const imageUrl = imageEl && imageEl.files && imageEl.files[0]
-                ? await compressImageToDataUrl(imageEl.files[0], 120, 0.6)
-                : null;
-            productCatalog[n] = { unit: u, stockOffset: parseInt(sEl ? sEl.value : 0) || 0, image: imageUrl };
+            productCatalog[n] = { unit: u, stockOffset: parseInt(sEl ? sEl.value : 0) || 0, image: null };
             await saveDataToCloud(); 
             renderInventory(); 
             closeCategoryModal(); 
             
             nEl.value = ''; uEl.value = ''; if(sEl) sEl.value = '0';
-            if(imageEl) imageEl.value = '';
             
             showToast('建档成功'); 
         }
