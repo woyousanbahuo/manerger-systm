@@ -429,7 +429,11 @@
         let isAdmin = false; 
         let authMode = 'login';
         let inventorySearchKey = '';
-        const isCloudEnabled = JSONBIN_BIN_ID && JSONBIN_BIN_ID !== '69e1e417856a682189430290'; 
+        const CLOUD_WARN_BYTES = 90000;
+        const PRODUCT_IMAGE_MAX_BYTES = 2600;
+        const PRODUCT_IMAGE_MAX_WIDTH = 96;
+        const LOGO_IMAGE_MAX_BYTES = 8000;
+        const LOGO_IMAGE_MAX_WIDTH = 180;
 
         let currentEditStockItem = '';
         let currentEditStockHistoryTotal = 0;
@@ -440,6 +444,7 @@
         const LOCAL_INV_KEY = 'inventoryData_v10';
         const LOCAL_CAT_KEY = 'productCatalog_v10';
         const LOCAL_META_KEY = 'inventoryLocalMeta_v1';
+        const LOCAL_SNAPSHOT_KEY = 'inventoryLocalSnapshots_v1';
 
         // 默认空图片 SVG
         const DEFAULT_IMG = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdib3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjZDJkNWRiIiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik00IDE2bDQuNTg2LTQuNTg2YTIgMiAwIDAxMi44MjggMEwxNiAxNm0tMi0ybDEuNTg2LTEuNTg2YTIgMiAwIDAxMi44MjggMEwyMCAxNG0tNi02aC4wMU02IDIwaDEyYTIgMiAwIDAwMi0yVjZhMiAyIDAgMDAtMi0ySDZhMiAyIDAgMDAtMiAydjEyYTIgMiAwIDAwMiAycyIvPjwvc3ZnPg==';
@@ -496,6 +501,22 @@
             return meta;
         }
 
+        function saveLocalSnapshot(reason = 'manual') {
+            try {
+                const snapshots = JSON.parse(localStorage.getItem(LOCAL_SNAPSHOT_KEY) || '[]');
+                snapshots.unshift({
+                    at: Date.now(),
+                    reason,
+                    inventoryData,
+                    productCatalog,
+                    companyLogo: localStorage.getItem('companyLogo') || ''
+                });
+                localStorage.setItem(LOCAL_SNAPSHOT_KEY, JSON.stringify(snapshots.slice(0, 5)));
+            } catch (e) {
+                // 快照只是后手，失败时不阻断正常保存。
+            }
+        }
+
         function setSyncStatus(label, isWarning = false) {
             const syncEl = document.getElementById('syncStatus');
             if (!syncEl) return;
@@ -513,29 +534,73 @@
             });
         }
 
-        async function compressImageToDataUrl(file, maxWidth = 120, quality = 0.6) {
-            const dataUrl = await readFileAsDataUrl(file);
+        function dataUrlBytes(dataUrl) {
+            return Math.ceil((dataUrl.length * 3) / 4);
+        }
+
+        function canvasToJpeg(canvas, quality) {
+            return canvas.toDataURL('image/jpeg', quality);
+        }
+
+        async function compressSourceToDataUrl(source, maxWidth = PRODUCT_IMAGE_MAX_WIDTH, quality = 0.55, maxBytes = PRODUCT_IMAGE_MAX_BYTES) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
                 img.onload = () => {
-                    const cvs = document.createElement('canvas');
-                    let w = img.width;
-                    let h = img.height;
-                    if (w > maxWidth) {
-                        h = Math.round((h * maxWidth) / w);
-                        w = maxWidth;
+                    let targetWidth = Math.min(maxWidth, img.width);
+                    let currentQuality = quality;
+                    let best = '';
+
+                    for (let attempt = 0; attempt < 8; attempt++) {
+                        const ratio = targetWidth / img.width;
+                        const w = Math.max(40, Math.round(img.width * ratio));
+                        const h = Math.max(40, Math.round(img.height * ratio));
+                        const cvs = document.createElement('canvas');
+                        cvs.width = w;
+                        cvs.height = h;
+                        const ctx = cvs.getContext('2d');
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, w, h);
+                        ctx.drawImage(img, 0, 0, w, h);
+                        best = canvasToJpeg(cvs, currentQuality);
+
+                        if (dataUrlBytes(best) <= maxBytes || (targetWidth <= 48 && currentQuality <= 0.35)) break;
+                        if (currentQuality > 0.35) currentQuality -= 0.08;
+                        else targetWidth = Math.max(48, Math.round(targetWidth * 0.82));
                     }
-                    cvs.width = w;
-                    cvs.height = h;
-                    const ctx = cvs.getContext('2d');
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(0, 0, w, h);
-                    ctx.drawImage(img, 0, 0, w, h);
-                    resolve(cvs.toDataURL('image/jpeg', quality));
+
+                    resolve(best);
                 };
-                img.onerror = reject;
-                img.src = dataUrl;
+                img.onerror = () => reject(new Error('图片读取失败'));
+                img.src = source;
             });
+        }
+
+        async function compressImageToDataUrl(file, maxWidth = PRODUCT_IMAGE_MAX_WIDTH, quality = 0.55, maxBytes = PRODUCT_IMAGE_MAX_BYTES) {
+            const dataUrl = await readFileAsDataUrl(file);
+            return compressSourceToDataUrl(dataUrl, maxWidth, quality, maxBytes);
+        }
+
+        async function optimizeStoredImages() {
+            const logo = localStorage.getItem('companyLogo') || '';
+            if (logo.startsWith('data:image/') && dataUrlBytes(logo) > LOGO_IMAGE_MAX_BYTES) {
+                try {
+                    localStorage.setItem('companyLogo', await compressSourceToDataUrl(logo, LOGO_IMAGE_MAX_WIDTH, 0.58, LOGO_IMAGE_MAX_BYTES));
+                } catch (e) {
+                    console.warn('Logo 压缩失败，保留原图');
+                }
+            }
+
+            const entries = Object.entries(productCatalog || {});
+            for (const [, info] of entries) {
+                if (!info || !info.image || !String(info.image).startsWith('data:image/')) continue;
+                if (dataUrlBytes(info.image) > PRODUCT_IMAGE_MAX_BYTES) {
+                    try {
+                        info.image = await compressSourceToDataUrl(info.image);
+                    } catch (e) {
+                        console.warn('库存图片压缩失败，保留原图');
+                    }
+                }
+            }
         }
 
         /* 启动流程 */
@@ -605,6 +670,8 @@
 
         async function saveDataToCloud(options = {}) {
             try {
+                saveLocalSnapshot(options.reason || 'before-cloud-save');
+                await optimizeStoredImages();
                 saveLocal(true);
             } catch (e) {
                 setSyncStatus('本地保存失败', true);
@@ -613,7 +680,7 @@
             }
             const dataToSave = getCloudStorePayload();
             const size = new Blob([JSON.stringify(dataToSave)]).size;
-            if (size > 100000) { showToast('⚠️ 云端空间接近上限，请控制图片数量'); }
+            if (size > CLOUD_WARN_BYTES) { showToast('云端空间接近上限，图片已自动压缩'); }
 
             startBar();
             try {
@@ -622,7 +689,7 @@
                     headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
                     body: JSON.stringify(dataToSave)
                 });
-                if(!res.ok) throw new Error();
+                if(!res.ok) throw new Error(`云端保存失败 ${res.status}`);
                 saveLocalMeta({ pendingSync: false, lastCloudSyncAt: Date.now(), lastErrorAt: null });
                 setSyncStatus('已同步云端');
                 endBar();
@@ -852,18 +919,22 @@
 
         /* 上传与同步功能 */
         function triggerLogoUpload() { if(isAdmin) { const i = document.getElementById('logoUploadInput'); if(i) i.click(); } else showToast('请先登录管理员'); }
-        function handleLogoUpload(e) {
+        async function handleLogoUpload(e) {
             const f = e.target.files[0]; if (!f) return;
-            const r = new FileReader();
-            r.onload = (evt) => {
-                const base64 = evt.target.result;
+            try {
+                startBar();
+                const base64 = await compressImageToDataUrl(f, LOGO_IMAGE_MAX_WIDTH, 0.58, LOGO_IMAGE_MAX_BYTES);
                 const logoEl = document.getElementById('companyLogo');
                 if(logoEl) logoEl.src = base64; 
                 localStorage.setItem('companyLogo', base64); 
-                saveDataToCloud(); 
-                showToast('Logo 更新成功');
-            };
-            r.readAsDataURL(f);
+                const synced = await saveDataToCloud();
+                showToast(synced ? 'Logo 更新成功' : 'Logo 已保存在本地，云端待同步');
+            } catch (err) {
+                endBar(true);
+                showToast('Logo 图片处理失败');
+            } finally {
+                e.target.value = '';
+            }
         }
 
         let upTarget = '';
@@ -872,7 +943,7 @@
             const f = e.target.files[0]; if (!f) return;
             try {
                 startBar();
-                productCatalog[upTarget].image = await compressImageToDataUrl(f, 120, 0.6);
+                productCatalog[upTarget].image = await compressImageToDataUrl(f);
                 const synced = await saveDataToCloud();
                 renderInventory();
                 showToast(synced ? '图片更新成功' : '图片已保存在本地，云端待同步');
@@ -1173,7 +1244,7 @@
             };
             
             if (imageEl && imageEl.files && imageEl.files[0]) {
-                productCatalog[name].image = await compressImageToDataUrl(imageEl.files[0], 120, 0.6);
+                productCatalog[name].image = await compressImageToDataUrl(imageEl.files[0]);
             }
 
             inventoryData.unshift(item); 
@@ -1203,7 +1274,7 @@
             if(!n || !u) return showToast('请填写品名与单位');
             
             const imageUrl = imageEl && imageEl.files && imageEl.files[0]
-                ? await compressImageToDataUrl(imageEl.files[0], 120, 0.6)
+                ? await compressImageToDataUrl(imageEl.files[0])
                 : null;
             productCatalog[n] = { unit: u, stockOffset: parseInt(sEl ? sEl.value : 0) || 0, image: imageUrl };
             const synced = await saveDataToCloud(); 
