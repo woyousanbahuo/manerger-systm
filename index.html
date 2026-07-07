@@ -437,6 +437,9 @@
         let stockSortOrder = 'none'; // 'none', 'asc', 'desc'
         let warningDismissed = false;
         let oldItemNameForEdit = '';
+        const LOCAL_INV_KEY = 'inventoryData_v10';
+        const LOCAL_CAT_KEY = 'productCatalog_v10';
+        const LOCAL_META_KEY = 'inventoryLocalMeta_v1';
 
         // 默认空图片 SVG
         const DEFAULT_IMG = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdib3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjZDJkNWRiIiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik00IDE2bDQuNTg2LTQuNTg2YTIgMiAwIDAxMi44MjggMEwxNiAxNm0tMi0ybDEuNTg2LTEuNTg2YTIgMiAwIDAxMi44MjggMEwyMCAxNG0tNi02aC4wMU02IDIwaDEyYTIgMiAwIDAwMi0yVjZhMiAyIDAgMDAtMi0ySDZhMiAyIDAgMDAtMiAydjEyYTIgMiAwIDAwMiAycyIvPjwvc3ZnPg==';
@@ -477,6 +480,28 @@
                 companyName: document.getElementById('companyName') ? document.getElementById('companyName').innerText : '管理系统',
                 companyLogo: localStorage.getItem('companyLogo') || ''
             };
+        }
+
+        function getLocalMeta() {
+            try {
+                return JSON.parse(localStorage.getItem(LOCAL_META_KEY) || '{}');
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function saveLocalMeta(nextMeta) {
+            const meta = { ...getLocalMeta(), ...nextMeta };
+            localStorage.setItem(LOCAL_META_KEY, JSON.stringify(meta));
+            return meta;
+        }
+
+        function setSyncStatus(label, isWarning = false) {
+            const syncEl = document.getElementById('syncStatus');
+            if (!syncEl) return;
+            syncEl.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-600', 'border-emerald-100', 'bg-amber-50', 'text-amber-700', 'border-amber-200');
+            syncEl.classList.add(isWarning ? 'bg-amber-50' : 'bg-emerald-50', isWarning ? 'text-amber-700' : 'text-emerald-600', isWarning ? 'border-amber-200' : 'border-emerald-100');
+            syncEl.lastChild.textContent = ` ${label}`;
         }
 
         function readFileAsDataUrl(file) {
@@ -529,6 +554,12 @@
             if (dateEl) dateEl.value = getTodayString();
         });
 
+        window.addEventListener('beforeunload', (event) => {
+            if (!getLocalMeta().pendingSync) return;
+            event.preventDefault();
+            event.returnValue = '还有本地记录未同步到云端，确认离开？';
+        });
+
         async function syncFromCloud() {
             startBar();
             try {
@@ -539,32 +570,47 @@
                 const data = await response.json();
                 const store = data.record;
                 if (store) {
-                    inventoryData = store.inventoryData || [];
-                    productCatalog = store.productCatalog || {};
-                    if (store.adminPassword) localStorage.setItem('adminPassword', store.adminPassword);
-                    if (store.companyName) {
-                        const nameEl = document.getElementById('companyName');
-                        if (nameEl) nameEl.innerText = store.companyName;
-                    }
-                    if (store.companyLogo) {
-                        const logoEl = document.getElementById('companyLogo');
-                        if (logoEl) {
-                            logoEl.src = store.companyLogo;
-                            localStorage.setItem('companyLogo', store.companyLogo);
+                    const meta = getLocalMeta();
+                    if (meta.pendingSync) {
+                        setSyncStatus('本地待同步', true);
+                        showToast('检测到未同步的本地记录，已保留并尝试重新同步');
+                        await saveDataToCloud({ silent: true });
+                    } else {
+                        inventoryData = store.inventoryData || [];
+                        productCatalog = store.productCatalog || {};
+                        if (store.adminPassword) localStorage.setItem('adminPassword', store.adminPassword);
+                        if (store.companyName) {
+                            const nameEl = document.getElementById('companyName');
+                            if (nameEl) nameEl.innerText = store.companyName;
                         }
+                        if (store.companyLogo) {
+                            const logoEl = document.getElementById('companyLogo');
+                            if (logoEl) {
+                                logoEl.src = store.companyLogo;
+                                localStorage.setItem('companyLogo', store.companyLogo);
+                            }
+                        }
+                        saveLocal(false);
+                        updateTable();
+                        renderInventory();
+                        setSyncStatus('已连接云端');
                     }
-                    saveLocal();
-                    updateTable();
-                    renderInventory();
-                    const syncEl = document.getElementById('syncStatus');
-                    if (syncEl) syncEl.classList.remove('hidden');
                 }
                 endBar();
-            } catch (e) { endBar(true); }
+            } catch (e) {
+                endBar(true);
+                if (getLocalMeta().pendingSync) setSyncStatus('本地待同步', true);
+            }
         }
 
-        async function saveDataToCloud() {
-            saveLocal();
+        async function saveDataToCloud(options = {}) {
+            try {
+                saveLocal(true);
+            } catch (e) {
+                setSyncStatus('本地保存失败', true);
+                showToast('本地存储空间不足，保存失败');
+                return false;
+            }
             const dataToSave = getCloudStorePayload();
             const size = new Blob([JSON.stringify(dataToSave)]).size;
             if (size > 100000) { showToast('⚠️ 云端空间接近上限，请控制图片数量'); }
@@ -577,22 +623,33 @@
                     body: JSON.stringify(dataToSave)
                 });
                 if(!res.ok) throw new Error();
+                saveLocalMeta({ pendingSync: false, lastCloudSyncAt: Date.now(), lastErrorAt: null });
+                setSyncStatus('已同步云端');
                 endBar();
-            } catch (e) { endBar(true); showToast('网络异常，修改仅保存在本地'); }
+                return true;
+            } catch (e) {
+                saveLocalMeta({ pendingSync: true, lastErrorAt: Date.now() });
+                setSyncStatus('本地待同步', true);
+                endBar(true);
+                if (!options.silent) showToast('云端同步失败，记录已保存在本地');
+                return false;
+            }
         }
 
-        function saveLocal() {
-            localStorage.setItem('inventoryData_v10', JSON.stringify(inventoryData));
-            localStorage.setItem('productCatalog_v10', JSON.stringify(productCatalog));
+        function saveLocal(markDirty = false) {
+            localStorage.setItem(LOCAL_INV_KEY, JSON.stringify(inventoryData));
+            localStorage.setItem(LOCAL_CAT_KEY, JSON.stringify(productCatalog));
+            saveLocalMeta({ lastLocalSaveAt: Date.now(), pendingSync: markDirty || getLocalMeta().pendingSync });
         }
 
         function initLocalData() {
-            const d = localStorage.getItem('inventoryData_v10');
-            const c = localStorage.getItem('productCatalog_v10');
+            const d = localStorage.getItem(LOCAL_INV_KEY);
+            const c = localStorage.getItem(LOCAL_CAT_KEY);
             if (d) inventoryData = JSON.parse(d);
             if (c) productCatalog = JSON.parse(c);
             updateTable(); 
             renderInventory();
+            if (getLocalMeta().pendingSync) setSyncStatus('本地待同步', true);
         }
 
         // ======================
@@ -816,9 +873,9 @@
             try {
                 startBar();
                 productCatalog[upTarget].image = await compressImageToDataUrl(f, 120, 0.6);
-                await saveDataToCloud();
+                const synced = await saveDataToCloud();
                 renderInventory();
-                showToast('图片更新成功');
+                showToast(synced ? '图片更新成功' : '图片已保存在本地，云端待同步');
             } catch (err) {
                 endBar(true);
                 showToast('图片上传失败');
@@ -1121,17 +1178,16 @@
 
             inventoryData.unshift(item); 
             
-            await saveDataToCloud(); 
+            const synced = await saveDataToCloud(); 
             updateTable(); 
             renderInventory(); 
-            closeModal(); 
-            
+            closeModal();
             nameEl.value = '';
             qtyEl.value = '';
             if(remarksEl) remarksEl.value = '';
             if(imageEl) imageEl.value = '';
             
-            showToast('保存成功'); 
+            showToast(synced ? '保存成功' : '已保存到本地，云端待同步'); 
         }
 
         async function saveCategory() {
@@ -1150,14 +1206,13 @@
                 ? await compressImageToDataUrl(imageEl.files[0], 120, 0.6)
                 : null;
             productCatalog[n] = { unit: u, stockOffset: parseInt(sEl ? sEl.value : 0) || 0, image: imageUrl };
-            await saveDataToCloud(); 
+            const synced = await saveDataToCloud(); 
             renderInventory(); 
-            closeCategoryModal(); 
-            
+            closeCategoryModal();
             nEl.value = ''; uEl.value = ''; if(sEl) sEl.value = '0';
             if(imageEl) imageEl.value = '';
             
-            showToast('建档成功'); 
+            showToast(synced ? '建档成功' : '已保存到本地，云端待同步'); 
         }
 
         let selectedIds = new Set();
