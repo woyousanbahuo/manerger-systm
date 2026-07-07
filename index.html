@@ -120,7 +120,7 @@
             </div>
             
             <div class="flex items-center gap-2 shrink-0">
-                <span class="hidden md:inline text-[11px] text-slate-400 whitespace-nowrap">系统更新：2026-07-07 10:53</span>
+                <span class="hidden md:inline text-[11px] text-slate-400 whitespace-nowrap">系统更新：2026-07-07 11:05</span>
                 <button id="navLoginBtn" onclick="openAuthModal('login')" class="px-4 py-1.5 bg-slate-800 text-white rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors shadow-sm">管理登录</button>
                 <button id="navChangePwdBtn" onclick="openAuthModal('changePwd')" class="hidden px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50">修改密码</button>
                 <div id="syncStatus" class="hidden sm:flex items-center px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-xs font-medium border border-emerald-100">
@@ -446,6 +446,7 @@
         const LOCAL_CAT_KEY = 'productCatalog_v10';
         const LOCAL_META_KEY = 'inventoryLocalMeta_v1';
         const LOCAL_SNAPSHOT_KEY = 'inventoryLocalSnapshots_v1';
+        const REPO_IMAGE_ITEMS = new Set(['驱蚊花露水', '洗车抹布', '洗衣粉', '苍蝇拍', '杀虫剂']);
 
         // 默认空图片 SVG
         const DEFAULT_IMG = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdib3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjZDJkNWRiIiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik00IDE2bDQuNTg2LTQuNTg2YTIgMiAwIDAxMi44MjggMEwxNiAxNm0tMi0ybDEuNTg2LTEuNTg2YTIgMiAwIDAxMi44MjggMEwyMCAxNG0tNi02aC4wMU02IDIwaDEyYTIgMiAwIDAwMi0yVjZhMiAyIDAgMDAtMi0ySDZhMiAyIDAgMDAtMiAydjEyYTIgMiAwIDAwMiAycyIvPjwvc3ZnPg==';
@@ -592,8 +593,12 @@
             }
 
             const entries = Object.entries(productCatalog || {});
-            for (const [, info] of entries) {
+            for (const [name, info] of entries) {
                 if (!info || !info.image || !String(info.image).startsWith('data:image/')) continue;
+                if (REPO_IMAGE_ITEMS.has(name)) {
+                    info.image = null;
+                    continue;
+                }
                 if (dataUrlBytes(info.image) > PRODUCT_IMAGE_MAX_BYTES) {
                     try {
                         info.image = await compressSourceToDataUrl(info.image);
