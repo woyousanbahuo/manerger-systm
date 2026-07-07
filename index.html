@@ -120,7 +120,7 @@
             </div>
             
             <div class="flex items-center gap-2 shrink-0">
-                <span class="hidden md:inline text-[11px] text-slate-400 whitespace-nowrap">系统更新：2026-07-07 09:13</span>
+                <span class="hidden md:inline text-[11px] text-slate-400 whitespace-nowrap">系统更新：2026-07-07 10:21</span>
                 <button id="navLoginBtn" onclick="openAuthModal('login')" class="px-4 py-1.5 bg-slate-800 text-white rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors shadow-sm">管理登录</button>
                 <button id="navChangePwdBtn" onclick="openAuthModal('changePwd')" class="hidden px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50">修改密码</button>
                 <div id="syncStatus" class="hidden sm:flex items-center px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-xs font-medium border border-emerald-100">
@@ -431,8 +431,8 @@
         let authMode = 'login';
         let inventorySearchKey = '';
         const CLOUD_WARN_BYTES = 90000;
-        const PRODUCT_IMAGE_MAX_BYTES = 2600;
-        const PRODUCT_IMAGE_MAX_WIDTH = 96;
+        const PRODUCT_IMAGE_MAX_BYTES = 12000;
+        const PRODUCT_IMAGE_MAX_WIDTH = 220;
         const LOGO_IMAGE_MAX_BYTES = 8000;
         const LOGO_IMAGE_MAX_WIDTH = 180;
 
@@ -543,7 +543,7 @@
             return canvas.toDataURL('image/jpeg', quality);
         }
 
-        async function compressSourceToDataUrl(source, maxWidth = PRODUCT_IMAGE_MAX_WIDTH, quality = 0.55, maxBytes = PRODUCT_IMAGE_MAX_BYTES) {
+        async function compressSourceToDataUrl(source, maxWidth = PRODUCT_IMAGE_MAX_WIDTH, quality = 0.72, maxBytes = PRODUCT_IMAGE_MAX_BYTES) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
                 img.onload = () => {
@@ -576,7 +576,7 @@
             });
         }
 
-        async function compressImageToDataUrl(file, maxWidth = PRODUCT_IMAGE_MAX_WIDTH, quality = 0.55, maxBytes = PRODUCT_IMAGE_MAX_BYTES) {
+        async function compressImageToDataUrl(file, maxWidth = PRODUCT_IMAGE_MAX_WIDTH, quality = 0.72, maxBytes = PRODUCT_IMAGE_MAX_BYTES) {
             const dataUrl = await readFileAsDataUrl(file);
             return compressSourceToDataUrl(dataUrl, maxWidth, quality, maxBytes);
         }
