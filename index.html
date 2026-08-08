@@ -188,6 +188,8 @@
                 <div class="flex gap-2 admin-only">
                     <button onclick="openModal()" class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm shadow-sm hover:bg-blue-700 transition-colors">入/出库记录</button>
                     <button onclick="openExportModal()" class="px-4 py-2.5 bg-emerald-600 text-white rounded-lg font-medium text-sm shadow-sm hover:bg-emerald-700 transition-colors">导出 Excel</button>
+                    <button onclick="openBackupModal()" class="px-4 py-2.5 bg-slate-700 text-white rounded-lg font-medium text-sm shadow-sm hover:bg-slate-800 transition-colors">本地备份</button>
+                    <button onclick="uploadLocalToCloud()" class="px-4 py-2.5 bg-indigo-600 text-white rounded-lg font-medium text-sm shadow-sm hover:bg-indigo-700 transition-colors">上传云端</button>
                 </div>
             </div>
             <div class="bg-white sm:rounded-2xl sm:shadow-sm border border-slate-200 overflow-hidden">
@@ -412,6 +414,41 @@
         </div>
     </div>
 
+    <div id="syncModal" class="fixed inset-0 z-50 modal-hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden">
+            <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-slate-800">云端同步</h3>
+                <button onclick="closeSyncModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <div class="p-6 space-y-3 text-sm text-slate-600">
+                <div>选择同步方式：</div>
+                <button onclick="syncFromCloud('merge')" class="w-full px-4 py-2.5 bg-indigo-600 text-white rounded-lg font-medium text-sm hover:bg-indigo-700">从云端合并到本地</button>
+                <button onclick="syncFromCloud('replace')" class="w-full px-4 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg font-medium text-sm hover:bg-slate-50">用云端覆盖本地</button>
+                <button onclick="closeSyncModal()" class="w-full px-4 py-2.5 bg-slate-100 text-slate-700 rounded-lg font-medium text-sm hover:bg-slate-200">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="backupModal" class="fixed inset-0 z-50 modal-hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+            <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-slate-800">本地备份</h3>
+                <button onclick="closeBackupModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div id="backupSummary" class="text-sm text-slate-600"></div>
+                <div id="backupList" class="max-h-52 overflow-auto space-y-2 text-sm"></div>
+                <input id="backupImportInput" type="file" accept="application/json" class="hidden" onchange="importLocalBackup(event)">
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t flex flex-wrap justify-end gap-2">
+                <button onclick="downloadLocalBackup()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 shadow-sm">下载备份</button>
+                <button onclick="restoreLatestBackup()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 shadow-sm">恢复最新</button>
+                <button onclick="document.getElementById('backupImportInput').click()" class="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50">导入 JSON</button>
+                <button onclick="closeBackupModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-600 bg-white hover:bg-slate-50">关闭</button>
+            </div>
+        </div>
+    </div>
+
     <div id="imagePreviewModal" class="fixed inset-0 z-[100] modal-hidden items-center justify-center bg-slate-900/90 backdrop-blur-sm" onclick="closeImagePreview()">
         <img id="previewImage" src="" class="max-w-[90vw] max-h-[85vh] object-contain rounded-xl shadow-lg border border-white/20">
     </div>
@@ -501,6 +538,20 @@
             const meta = { ...getLocalMeta(), ...nextMeta };
             localStorage.setItem(LOCAL_META_KEY, JSON.stringify(meta));
             return meta;
+        }
+
+        function getActionLog() {
+            try {
+                return JSON.parse(localStorage.getItem('inventoryActionLog_v1') || '[]');
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function addActionLog(action, detail = '') {
+            const logs = getActionLog();
+            logs.unshift({ at: Date.now(), action, detail });
+            localStorage.setItem('inventoryActionLog_v1', JSON.stringify(logs.slice(0, 50)));
         }
 
         function saveLocalSnapshot(reason = 'manual') {
@@ -618,7 +669,6 @@
             }
 
             initLocalData();
-            syncFromCloud();
             setAdminStatus(false);
             
             const dateEl = document.getElementById('formDate');
@@ -631,7 +681,17 @@
             event.returnValue = '还有本地记录未同步到云端，确认离开？';
         });
 
-        async function syncFromCloud() {
+        function openSyncModal() {
+            const modal = document.getElementById('syncModal');
+            if (modal) modal.classList.replace('modal-hidden', 'modal-active');
+        }
+
+        function closeSyncModal() {
+            const modal = document.getElementById('syncModal');
+            if (modal) modal.classList.replace('modal-active', 'modal-hidden');
+        }
+
+        async function syncFromCloud(mode = 'merge') {
             startBar();
             try {
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
@@ -641,12 +701,7 @@
                 const data = await response.json();
                 const store = data.record;
                 if (store) {
-                    const meta = getLocalMeta();
-                    if (meta.pendingSync) {
-                        setSyncStatus('本地待同步', true);
-                        showToast('检测到未同步的本地记录，已保留并尝试重新同步');
-                        await saveDataToCloud({ silent: true });
-                    } else {
+                    if (mode === 'replace') {
                         inventoryData = store.inventoryData || [];
                         productCatalog = store.productCatalog || {};
                         if (store.adminPassword) localStorage.setItem('adminPassword', store.adminPassword);
@@ -662,9 +717,37 @@
                             }
                         }
                         saveLocal(false);
+                        saveLocalMeta({ pendingSync: false, lastCloudSyncAt: Date.now(), lastErrorAt: null });
                         updateTable();
                         renderInventory();
-                        setSyncStatus('已连接云端');
+                        setSyncStatus('已从云端覆盖');
+                    } else {
+                        const meta = getLocalMeta();
+                        if (!meta.pendingSync) {
+                            if (store.inventoryData) {
+                                inventoryData = store.inventoryData || [];
+                                productCatalog = store.productCatalog || {};
+                                if (store.adminPassword) localStorage.setItem('adminPassword', store.adminPassword);
+                                if (store.companyName) {
+                                    const nameEl = document.getElementById('companyName');
+                                    if (nameEl) nameEl.innerText = store.companyName;
+                                }
+                                if (store.companyLogo) {
+                                    const logoEl = document.getElementById('companyLogo');
+                                    if (logoEl) {
+                                        logoEl.src = store.companyLogo;
+                                        localStorage.setItem('companyLogo', store.companyLogo);
+                                    }
+                                }
+                                saveLocal(false);
+                                updateTable();
+                                renderInventory();
+                                setSyncStatus('已连接云端');
+                            }
+                        } else {
+                            setSyncStatus('本地待同步', true);
+                            showToast('检测到未同步的本地记录，已保留');
+                        }
                     }
                 }
                 endBar();
@@ -674,9 +757,14 @@
             }
         }
 
-        async function saveDataToCloud(options = {}) {
+        function saveDataToLocal(reason = 'manual') {
+            saveLocalSnapshot(reason);
+            saveLocal(true);
+            setSyncStatus('本地已保存', false);
+        }
+
+        async function uploadLocalToCloud() {
             try {
-                saveLocalSnapshot(options.reason || 'before-cloud-save');
                 await optimizeStoredImages();
                 saveLocal(true);
             } catch (e) {
@@ -687,7 +775,6 @@
             const dataToSave = getCloudStorePayload();
             const size = new Blob([JSON.stringify(dataToSave)]).size;
             if (size > CLOUD_WARN_BYTES) { showToast('云端空间接近上限，图片已自动压缩'); }
-
             startBar();
             try {
                 const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
@@ -933,8 +1020,8 @@
                 const logoEl = document.getElementById('companyLogo');
                 if(logoEl) logoEl.src = base64; 
                 localStorage.setItem('companyLogo', base64); 
-                const synced = await saveDataToCloud();
-                showToast(synced ? 'Logo 更新成功' : 'Logo 已保存在本地，云端待同步');
+                saveDataToLocal('logo-upload');
+                showToast('Logo 已保存到本地');
             } catch (err) {
                 endBar(true);
                 showToast('Logo 图片处理失败');
@@ -950,9 +1037,9 @@
             try {
                 startBar();
                 productCatalog[upTarget].image = await compressImageToDataUrl(f);
-                const synced = await saveDataToCloud();
+                saveDataToLocal('image-upload');
                 renderInventory();
-                showToast(synced ? '图片更新成功' : '图片已保存在本地，云端待同步');
+                showToast('图片已保存到本地');
             } catch (err) {
                 endBar(true);
                 showToast('图片上传失败');
@@ -1082,7 +1169,7 @@
             } else { 
                 if(oldEl && oldEl.value !== s) showToast('原密码不正确'); 
                 else if(!p) showToast('新密码不能为空');
-                else { localStorage.setItem('adminPassword', p); saveDataToCloud(); closeAuthModal(); showToast('修改成功'); } 
+                else { localStorage.setItem('adminPassword', p); saveDataToLocal('password-change'); closeAuthModal(); showToast('修改成功'); } 
             }
             if(pwdEl) pwdEl.value = '';
             if(oldEl) oldEl.value = '';
@@ -1168,7 +1255,7 @@
             // 根据目标值和历史值的差，反算新的 Offset（不改变历史出入库明细记录）
             productCatalog[currentEditStockItem].stockOffset = newVal - currentEditStockHistoryTotal;
             
-            await saveDataToCloud();
+            saveDataToLocal('edit-stock');
             renderInventory();
             closeEditStockModal();
             showToast('库存校准成功');
@@ -1208,7 +1295,7 @@
                 }
             });
 
-            await saveDataToCloud();
+            saveDataToLocal('edit-name');
             updateTable();
             renderInventory();
             closeEditNameModal();
@@ -1255,7 +1342,7 @@
 
             inventoryData.unshift(item); 
             
-            const synced = await saveDataToCloud(); 
+            saveDataToLocal('record-save'); 
             updateTable(); 
             renderInventory(); 
             closeModal();
@@ -1264,7 +1351,7 @@
             if(remarksEl) remarksEl.value = '';
             if(imageEl) imageEl.value = '';
             
-            showToast(synced ? '保存成功' : '已保存到本地，云端待同步'); 
+            showToast('已保存到本地'); 
         }
 
         async function saveCategory() {
@@ -1283,13 +1370,13 @@
                 ? await compressImageToDataUrl(imageEl.files[0])
                 : null;
             productCatalog[n] = { unit: u, stockOffset: parseInt(sEl ? sEl.value : 0) || 0, image: imageUrl };
-            const synced = await saveDataToCloud(); 
+            saveDataToLocal('category-save'); 
             renderInventory(); 
             closeCategoryModal();
             nEl.value = ''; uEl.value = ''; if(sEl) sEl.value = '0';
             if(imageEl) imageEl.value = '';
             
-            showToast(synced ? '建档成功' : '已保存到本地，云端待同步'); 
+            showToast('已保存到本地'); 
         }
 
         let selectedIds = new Set();
@@ -1301,7 +1388,7 @@
         async function deleteRow(id) { 
             if(!confirm('确定要删除这条记录吗？')) return; 
             inventoryData = inventoryData.filter(i => i.id !== id); 
-            await saveDataToCloud(); 
+            saveDataToLocal('delete-row'); 
             updateTable(); 
             renderInventory(); 
         }
@@ -1309,7 +1396,7 @@
         async function delInv(n) { 
             if(!confirm('确定要彻底删除此品类？')) return; 
             delete productCatalog[decodeURIComponent(n)]; 
-            await saveDataToCloud(); 
+            saveDataToLocal('delete-category'); 
             renderInventory(); 
         }
 
@@ -1327,7 +1414,7 @@
             if(modal) modal.classList.replace('modal-active', 'modal-hidden'); 
         }
 
-        function saveCompanyName() { saveDataToCloud(); showToast('标题更新成功'); }
+        function saveCompanyName() { saveDataToLocal('company-name'); showToast('标题更新成功'); }
         
         function handleItemNameInput() { 
             const nEl = document.getElementById('formItemName');
@@ -1350,6 +1437,105 @@
         function closeExportModal() {
             const modal = document.getElementById('exportModal');
             if(modal) modal.classList.replace('modal-active', 'modal-hidden');
+        }
+
+        function openBackupModal() {
+            const modal = document.getElementById('backupModal');
+            if (!modal) return;
+            renderBackupModal();
+            modal.classList.replace('modal-hidden', 'modal-active');
+        }
+
+        function closeBackupModal() {
+            const modal = document.getElementById('backupModal');
+            if (modal) modal.classList.replace('modal-active', 'modal-hidden');
+        }
+
+        function renderBackupModal() {
+            const summary = document.getElementById('backupSummary');
+            const list = document.getElementById('backupList');
+            if (!summary || !list) return;
+            const snaps = JSON.parse(localStorage.getItem(LOCAL_SNAPSHOT_KEY) || '[]');
+            summary.textContent = `当前本地快照 ${snaps.length} 份；恢复会先保留一份新快照。`;
+            list.innerHTML = snaps.length
+                ? snaps.map((s, i) => `<div class="px-3 py-2 border border-slate-200 rounded-lg bg-slate-50"><div class="font-medium text-slate-800">#${i + 1} ${new Date(s.at).toLocaleString()}</div><div class="text-slate-500 text-xs mt-1">${s.reason || 'snapshot'} · ${Array.isArray(s.inventoryData) ? s.inventoryData.length : 0} 条记录 · ${s.productCatalog ? Object.keys(s.productCatalog).length : 0} 个品类</div></div>`).join('')
+                : '<div class="text-slate-400">没有找到本地快照。</div>';
+        }
+
+        function downloadLocalBackup() {
+            const payload = {
+                inventoryData,
+                productCatalog,
+                meta: getLocalMeta(),
+                companyLogo: localStorage.getItem('companyLogo') || '',
+                adminPassword: localStorage.getItem('adminPassword') || '123456',
+                log: JSON.parse(localStorage.getItem('inventoryActionLog_v1') || '[]'),
+                createdAt: Date.now()
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `办公用品本地备份_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+            addActionLog('export-backup', '下载本地备份');
+            showToast('本地备份已下载');
+        }
+
+        function applyBackupPayload(payload, mode = 'replace') {
+            if (!payload || !Array.isArray(payload.inventoryData) || typeof payload.productCatalog !== 'object') {
+                return false;
+            }
+            saveLocalSnapshot('before-restore');
+            if (mode === 'merge') {
+                const seen = new Set(inventoryData.map(i => i.id));
+                payload.inventoryData.forEach(item => {
+                    if (!seen.has(item.id)) inventoryData.unshift(item);
+                });
+                productCatalog = { ...productCatalog, ...payload.productCatalog };
+            } else {
+                inventoryData = payload.inventoryData;
+                productCatalog = payload.productCatalog;
+            }
+            if (payload.companyLogo) localStorage.setItem('companyLogo', payload.companyLogo);
+            if (payload.adminPassword) localStorage.setItem('adminPassword', payload.adminPassword);
+            saveDataToLocal('restore-backup');
+            updateTable();
+            renderInventory();
+            return true;
+        }
+
+        function restoreLatestBackup() {
+            const snaps = JSON.parse(localStorage.getItem(LOCAL_SNAPSHOT_KEY) || '[]');
+            if (!snaps.length) return showToast('没有可恢复的本地快照');
+            if (!confirm('确定恢复最近一次本地快照吗？当前内容会先保留一份。')) return;
+            if (!applyBackupPayload(snaps[0], 'replace')) return showToast('快照格式不正确');
+            setSyncStatus('本地待同步', true);
+            addActionLog('restore-backup', '恢复最近本地快照');
+            showToast('已恢复最近本地快照');
+            closeBackupModal();
+        }
+
+        function importLocalBackup(event) {
+            const f = event.target.files && event.target.files[0];
+            if (!f) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const payload = JSON.parse(reader.result);
+                    const mode = confirm('确定覆盖当前内容吗？点取消则合并到当前数据。') ? 'replace' : 'merge';
+                    if (!applyBackupPayload(payload, mode)) return showToast('备份格式不正确');
+                    setSyncStatus('本地待同步', true);
+                    addActionLog('import-backup', mode === 'replace' ? '覆盖导入备份' : '合并导入备份');
+                    showToast(mode === 'replace' ? '已覆盖导入备份' : '已合并导入备份');
+                    closeBackupModal();
+                } catch (e) {
+                    showToast('备份文件解析失败');
+                } finally {
+                    event.target.value = '';
+                }
+            };
+            reader.readAsText(f);
         }
 
         function executeExport() {
