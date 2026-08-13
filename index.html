@@ -120,7 +120,7 @@
             </div>
             
             <div class="flex items-center gap-2 shrink-0">
-                <span class="hidden md:inline text-[11px] text-slate-400 whitespace-nowrap">系统更新：2026-07-07 11:05</span>
+                <span class="hidden md:inline text-[11px] text-slate-400 whitespace-nowrap">系统更新：2026-08-13 10:45</span>
                 <button id="navLoginBtn" onclick="openAuthModal('login')" class="px-4 py-1.5 bg-slate-800 text-white rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors shadow-sm">管理登录</button>
                 <button id="navChangePwdBtn" onclick="openAuthModal('changePwd')" class="hidden px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50">修改密码</button>
                 <div id="syncStatus" class="hidden sm:flex items-center px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-xs font-medium border border-emerald-100">
@@ -483,6 +483,7 @@
         const LOCAL_CAT_KEY = 'productCatalog_v10';
         const LOCAL_META_KEY = 'inventoryLocalMeta_v1';
         const LOCAL_SNAPSHOT_KEY = 'inventoryLocalSnapshots_v1';
+        const DEFAULT_DATA_URL = 'data/default-data.json';
         const REPO_IMAGE_ITEMS = new Set(['驱蚊花露水', '洗车抹布', '洗衣粉', '苍蝇拍', '杀虫剂']);
 
         // 默认空图片 SVG
@@ -661,7 +662,7 @@
         }
 
         /* 启动流程 */
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             const savedLogo = localStorage.getItem('companyLogo');
             if (savedLogo) {
                 const logoEl = document.getElementById('companyLogo');
@@ -669,6 +670,7 @@
             }
 
             initLocalData();
+            await syncBundledDefaultData();
             setAdminStatus(false);
             
             const dateEl = document.getElementById('formDate');
@@ -791,7 +793,7 @@
                 saveLocalMeta({ pendingSync: true, lastErrorAt: Date.now() });
                 setSyncStatus('本地待同步', true);
                 endBar(true);
-                if (!options.silent) showToast('云端同步失败，记录已保存在本地');
+                showToast('云端同步失败，记录已保存在本地');
                 return false;
             }
         }
@@ -810,6 +812,64 @@
             updateTable(); 
             renderInventory();
             if (getLocalMeta().pendingSync) setSyncStatus('本地待同步', true);
+        }
+
+        function itemSignature(item) {
+            return [
+                item.date || '',
+                item.type || '',
+                item.itemName || '',
+                item.quantity || '',
+                item.unit || '',
+                item.handler || '',
+                item.remarks || ''
+            ].join('|');
+        }
+
+        function mergeStorePayload(payload) {
+            if (!payload || !Array.isArray(payload.inventoryData) || typeof payload.productCatalog !== 'object') return 0;
+            const seen = new Set(inventoryData.map(itemSignature));
+            let added = 0;
+            payload.inventoryData.forEach(item => {
+                if (!seen.has(itemSignature(item))) {
+                    inventoryData.push(item);
+                    seen.add(itemSignature(item));
+                    added++;
+                }
+            });
+            inventoryData.sort((a, b) => {
+                const dateCmp = String(b.date || '').localeCompare(String(a.date || ''));
+                if (dateCmp !== 0) return dateCmp;
+                return (Number(b.id) || 0) - (Number(a.id) || 0);
+            });
+            Object.entries(payload.productCatalog).forEach(([name, info]) => {
+                if (!productCatalog[name]) {
+                    productCatalog[name] = { unit: info.unit || '个', stockOffset: info.stockOffset || 0, image: info.image || null };
+                    return;
+                }
+                productCatalog[name].unit = productCatalog[name].unit || info.unit || '个';
+                productCatalog[name].stockOffset = productCatalog[name].stockOffset || info.stockOffset || 0;
+                productCatalog[name].image = productCatalog[name].image || null;
+            });
+            return added;
+        }
+
+        async function syncBundledDefaultData() {
+            try {
+                const response = await fetch(`${DEFAULT_DATA_URL}?v=20260813`);
+                if (!response.ok) return;
+                const payload = await response.json();
+                const meta = getLocalMeta();
+                if (payload.version && meta.defaultDataVersion === payload.version) return;
+                const added = mergeStorePayload(payload);
+                saveLocal(false);
+                saveLocalMeta({ defaultDataVersion: payload.version || '', defaultDataUpdatedAt: payload.updatedAt || Date.now() });
+                if (added > 0) addActionLog('github-data-sync', `合并 GitHub 默认数据 ${added} 条`);
+                updateTable();
+                renderInventory();
+            } catch (e) {
+                console.warn('GitHub 默认数据加载失败，继续使用本地数据');
+            }
         }
 
         // ======================
@@ -1488,11 +1548,7 @@
             }
             saveLocalSnapshot('before-restore');
             if (mode === 'merge') {
-                const seen = new Set(inventoryData.map(i => i.id));
-                payload.inventoryData.forEach(item => {
-                    if (!seen.has(item.id)) inventoryData.unshift(item);
-                });
-                productCatalog = { ...productCatalog, ...payload.productCatalog };
+                mergeStorePayload(payload);
             } else {
                 inventoryData = payload.inventoryData;
                 productCatalog = payload.productCatalog;
