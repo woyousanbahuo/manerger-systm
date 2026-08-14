@@ -1641,16 +1641,20 @@
 
             if (dataToExport.length === 0) return showToast('所选范围内没有数据可导出');
 
-            // 计算当前总库存（用于导出“剩余数量”）
-            let stockMap = {};
+            // 从当前库存往历史回退，导出每笔操作完成后的剩余数量。
+            let exportStockMap = {};
             inventoryData.forEach(i => {
-                if (!stockMap[i.itemName]) stockMap[i.itemName] = 0;
-                stockMap[i.itemName] += (i.type === '入库' ? i.quantity : -i.quantity);
+                if (!exportStockMap[i.itemName]) exportStockMap[i.itemName] = 0;
+                exportStockMap[i.itemName] += (i.type === '入库' ? i.quantity : -i.quantity);
+            });
+            Object.entries(productCatalog).forEach(([name, info]) => {
+                exportStockMap[name] = (exportStockMap[name] || 0) + (info.stockOffset || 0);
             });
 
             // 格式化导出数据，根据操作类型映射自定义表头
             const formattedData = dataToExport.map(item => {
-                const currentStock = (stockMap[item.itemName] || 0) + (productCatalog[item.itemName]?.stockOffset || 0);
+                const currentStock = exportStockMap[item.itemName] || 0;
+                exportStockMap[item.itemName] = currentStock - (item.type === '入库' ? item.quantity : -item.quantity);
                 
                 if (t === '出库') {
                     return {
