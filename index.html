@@ -527,6 +527,24 @@
             };
         }
 
+        function getCloudStorePayloadWithoutInlineImages() {
+            const slimCatalog = {};
+            Object.entries(productCatalog || {}).forEach(([name, info]) => {
+                slimCatalog[name] = {
+                    unit: info?.unit || '个',
+                    stockOffset: info?.stockOffset || 0,
+                    image: info?.image && !String(info.image).startsWith('data:image/') ? info.image : null
+                };
+            });
+            return {
+                inventoryData,
+                productCatalog: slimCatalog,
+                adminPassword: localStorage.getItem('adminPassword') || '123456',
+                companyName: document.getElementById('companyName') ? document.getElementById('companyName').innerText : '管理系统',
+                companyLogo: ''
+            };
+        }
+
         function getLocalMeta() {
             try {
                 return JSON.parse(localStorage.getItem(LOCAL_META_KEY) || '{}');
@@ -765,6 +783,15 @@
             setSyncStatus('本地已保存', false);
         }
 
+        async function putCloudStorePayload(payload) {
+            const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
+                body: JSON.stringify(payload)
+            });
+            if(!res.ok) throw new Error(`云端保存失败 ${res.status}`);
+        }
+
         async function uploadLocalToCloud() {
             try {
                 await optimizeStoredImages();
@@ -779,18 +806,22 @@
             if (size > CLOUD_WARN_BYTES) { showToast('云端空间接近上限，图片已自动压缩'); }
             startBar();
             try {
-                const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
-                    body: JSON.stringify(dataToSave)
-                });
-                if(!res.ok) throw new Error(`云端保存失败 ${res.status}`);
+                await putCloudStorePayload(dataToSave);
                 saveLocalMeta({ pendingSync: false, lastCloudSyncAt: Date.now(), lastErrorAt: null });
                 setSyncStatus('已同步云端');
                 endBar();
                 return true;
             } catch (e) {
-                saveLocalMeta({ pendingSync: true, lastErrorAt: Date.now() });
+                try {
+                    await putCloudStorePayload(getCloudStorePayloadWithoutInlineImages());
+                    saveLocalMeta({ pendingSync: false, lastCloudSyncAt: Date.now(), lastErrorAt: null, imageSyncLimited: true });
+                    setSyncStatus('文字已同步');
+                    endBar();
+                    showToast('图片未同步，出库记录和库存已同步云端');
+                    return true;
+                } catch (retryError) {
+                    saveLocalMeta({ pendingSync: true, lastErrorAt: Date.now(), lastSyncError: retryError.message || e.message || '云端同步失败' });
+                }
                 setSyncStatus('本地待同步', true);
                 endBar(true);
                 showToast('云端同步失败，记录已保存在本地');
