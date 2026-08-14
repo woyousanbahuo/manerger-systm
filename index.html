@@ -1317,6 +1317,7 @@
             
             saveDataToLocal('edit-stock');
             renderInventory();
+            void uploadLocalToCloud();
             closeEditStockModal();
             showToast('库存校准成功');
         }
@@ -1405,6 +1406,7 @@
             saveDataToLocal('record-save'); 
             updateTable(); 
             renderInventory(); 
+            void uploadLocalToCloud();
             closeModal();
             nameEl.value = '';
             qtyEl.value = '';
